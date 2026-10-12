@@ -11,9 +11,13 @@ supabase/.branches/
 # dependências e builds
 node_modules/
 dist/
+*.tsbuildinfo
 .vercel/
 
 # sistema
 .DS_Store
 Thumbs.db
 .vscode/
+
+# contexto local do Claude Code (tem dados pessoais)
+CLAUDE.md
