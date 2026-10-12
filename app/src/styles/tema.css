@@ -1,0 +1,83 @@
+/* Tokens e classes do design aprovado (canvas "App Finanças") */
+:root {
+  --fundo: #0E0D0C;
+  --texto: #F5F2ED;
+  --texto-2: #C9C2B7;
+  --mel: #F2B84B;
+  --negativo: #F0533F;
+  --positivo: #8FCF9E;
+  --borda-vidro: rgba(255, 255, 255, 0.11);
+  --raio: 22px;
+  --ilha-altura: 68px;
+  font-family: Onest, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { margin: 0; min-height: 100%; }
+
+body {
+  background:
+    radial-gradient(60% 40% at 100% 20%, rgba(235, 110, 80, 0.14), transparent 70%),
+    radial-gradient(60% 40% at 0% 55%, rgba(242, 184, 75, 0.11), transparent 70%),
+    radial-gradient(120% 60% at 50% 0%, #1E1A15 0%, var(--fundo) 55%, #0A0A09 100%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* Cartão de vidro */
+.vidro {
+  position: relative;
+  border-radius: var(--raio);
+  background: linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 55%, rgba(255,255,255,0.035) 100%);
+  border: 1px solid var(--borda-vidro);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.25), 0 10px 28px -10px rgba(0,0,0,0.75);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  overflow: hidden;
+}
+.vidro::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255,255,255,0.07) 0%, transparent 38%);
+  pointer-events: none;
+}
+.vidro > * { position: relative; }
+
+/* Pílula de vidro (campos, seletores) */
+.pilula {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 16px -8px rgba(0,0,0,0.7);
+}
+
+/* Botão principal dourado */
+.botao-mel {
+  width: 100%;
+  height: 50px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FFCF6E, #E9A93A);
+  color: #2A1C05;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255,240,200,0.7), 0 8px 22px -8px rgba(242,184,75,0.7);
+}
+.botao-mel:disabled { opacity: 0.6; cursor: default; }
+
+/* Área das telas: deixa espaço pra ilha flutuante */
+.tela {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 22px 16px calc(var(--ilha-altura) + 40px + env(safe-area-inset-bottom));
+}
+
+.titulo { font-size: 26px; font-weight: 700; letter-spacing: -0.4px; margin: 0; }
+.mutado { color: var(--texto-2); }

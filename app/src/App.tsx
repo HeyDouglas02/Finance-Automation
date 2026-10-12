@@ -1,0 +1,26 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { useSessao } from './hooks/useSessao';
+import { Ilha } from './components/Ilha';
+import { Login } from './pages/Login';
+import { Mes } from './pages/Mes';
+import { EmBreve } from './pages/EmBreve';
+
+export function App() {
+  const sessao = useSessao();
+
+  if (sessao === undefined) return null;   // verificando o login
+  if (sessao === null) return <Login />;    // deslogado
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Mes />} />
+        <Route path="/revisar" element={<EmBreve titulo="Revisar" />} />
+        <Route path="/lancar" element={<EmBreve titulo="Lançar" />} />
+        <Route path="/acertos" element={<EmBreve titulo="Acertos" />} />
+        <Route path="/mais" element={<EmBreve titulo="Mais" />} />
+      </Routes>
+      <Ilha />
+    </BrowserRouter>
+  );
+}
