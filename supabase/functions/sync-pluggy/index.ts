@@ -3,6 +3,8 @@
 //
 // Secrets necessários (supabase secrets set):
 //   PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET, PLUGGY_ITEM_IDS (separados por vírgula)
+//   CRON_SECRET (exigido no cabeçalho x-cron-secret de toda chamada)
+// Publicar com: supabase functions deploy sync-pluggy --use-api --no-verify-jwt
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm do próprio Supabase.
 
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
@@ -14,7 +16,13 @@ import {
 const PLUGGY = 'https://api.pluggy.ai';
 const JANELA_DIAS = 45;
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  // Só roda com o segredo certo no cabeçalho (o agendador manda; quem não tiver recebe 401)
+  const segredo = Deno.env.get('CRON_SECRET');
+  if (!segredo || !iguais(req.headers.get('x-cron-secret') ?? '', segredo)) {
+    return Response.json({ erro: 'não autorizado' }, { status: 401 });
+  }
+
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   try {
     const resumo = await sincronizar(db);
@@ -24,6 +32,14 @@ Deno.serve(async () => {
     return Response.json({ erro: String(e) }, { status: 500 });
   }
 });
+
+/** Compara dois textos sempre no mesmo tempo (evita adivinhar o segredo medindo a demora). */
+function iguais(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let dif = 0;
+  for (let i = 0; i < a.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return dif === 0;
+}
 
 /* ------------------------------ Pluggy ------------------------------ */
 
