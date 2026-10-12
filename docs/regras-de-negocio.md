@@ -57,6 +57,7 @@ O orçamento de um mês é pago com a renda que cai no mês seguinte, como um sa
 ## 9. Acertos
 
 - Vistos mês a mês: quanto cada pessoa deve, com a lista de itens.
+- O acerto de um mês é da mesma competência dos gastos: as compras de outubro (fatura que vence em novembro) entram no acerto de outubro.
 - Pagamentos são registrados por mês e pessoa; o mês fica *pago* quando o valor recebido cobre o devido.
 
 ## 10. Conferência de faturas

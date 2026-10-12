@@ -59,9 +59,10 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 
 - [x] Regras de negócio definidas e validadas
 - [x] Modelo de dados
-- [ ] Migração dos dados
-- [ ] Sincronização como Edge Function
-- [ ] PWA
+- [x] Migração dos dados
+- [x] Sincronização como Edge Function (diária, via pg_cron)
+- [ ] App: telas Mês e Meses prontas; Revisar, Lançar e Acertos em andamento
+- [ ] PWA instalável e deploy
 - [ ] Cobrança pelo WhatsApp com Pix copia e cola
 
 ## Rodando localmente

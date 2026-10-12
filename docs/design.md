@@ -1,15 +1,17 @@
 # Design
 
-Tema escuro, sóbrio e "de banco", sem gradientes nem cores pastel.
+Tema escuro: fundo grafite quente com brilhos suaves, cartões em vidro e destaque âmbar. Tokens em `app/src/styles/tema.css`.
 
 | Token | Valor | Uso |
 |---|---|---|
-| Fundo | #161514 | grafite quente |
-| Texto | #F2EFEA | branco-osso |
-| Texto secundário | #A8A29A | cinza quente |
-| Destaque | #F2B84B | mel, só em ações e seleção |
-| Positivo | #8FCFA4 | sálvia |
-| Negativo | #EE8B7C | tijolo |
-| Fonte | Onest | 300 para números grandes, 400–600 para texto |
+| Fundo | #0E0D0C | grafite quente, com brilhos radiais âmbar e coral |
+| Texto | #F5F2ED | branco-osso |
+| Texto secundário | #C9C2B7 | cinza quente |
+| Destaque | #F2B84B | mel: ações, seleção, valores comprometidos |
+| Positivo | #8FCF9E | sálvia |
+| Negativo | #F0533F | vermelho coral |
+| Fonte | Onest | números em negrito pesado (700 a 800) |
 
-Telas: **Mês** (sobra centralizada, grupos recolhidos, ⓘ com status dos bancos), **Revisar** (uma compra por vez), **Lançar**, **Acertos** e **Mais**. Navegação por uma barra de abas flutuante.
+Componentes: cartão de vidro (`.vidro`), pílula (`.pilula`), botão dourado (`.botao-mel`).
+
+Telas: **Mês** (saldo do mês, fatura, a receber, ritmo e categorias), **Revisar** (uma compra por vez), **Lançar**, **Acertos** e **Mais**. Navegação por uma ilha de abas flutuante. Satélites com "voltar": **Meses** (mês atual, próximos com valor já comprometido, anteriores fechados), Detalhes do mês, Transações e Categoria aberta.

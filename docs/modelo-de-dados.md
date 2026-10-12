@@ -51,10 +51,15 @@ erDiagram
 - **IDs da Pluggy como chave** em `transacoes` e `faturas`, o que torna a sincronização idempotente (upsert).
 - **Competência gravada na transação**, recalculada a cada sincronização a partir da fatura (ou do dia de fechamento, se a fatura ainda não fechou).
 
-## Views (próxima migration)
+## Views
 
 | View | Conteúdo |
 |---|---|
+| `v_itens` | Base: transações reais, parcelas futuras, contas fixas, débitos, gasolina e renda |
+| `v_partes` | A parte de cada pessoa em cada item (rateios) |
 | `v_lancamentos` | Tudo junto, com mês, tipo, valor, parte do dono e status (real, previsto, esperado, manual) |
 | `v_mes` | Renda, saídas por grupo e sobra de cada mês |
 | `v_acertos` | Devido e pago por pessoa e mês |
+| `v_categorias_mes` | Sua parte gasta em cada categoria, por mês |
+| `v_parcelamentos` | Compras parceladas e quanto ainda falta |
+| `v_ritmo` | Sua parte acumulada dia a dia |
