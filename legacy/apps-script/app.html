@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#161514;--sheet:#211F1D;--tx:#F2EFEA;--tx2:#D9D4CC;--mut:#A8A29A;--acc:#F2B84B;--pos:#8FCFA4;--neg:#EE8B7C;
+--glass:rgba(255,250,240,.05);--glass2:rgba(255,250,240,.08);--line:rgba(255,250,240,.07);--brd:rgba(255,250,240,.10)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:Onest,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+#app{max-width:480px;margin:0 auto;min-height:100vh;padding:0 0 120px}
+.top{padding:28px 22px 0;display:flex;align-items:center;justify-content:space-between}
+.round{width:44px;height:44px;border-radius:22px;background:var(--glass2);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center}
+.h1{font-size:30px;font-weight:400;letter-spacing:-.8px;padding:30px 26px 0}
+.sub{font-size:14px;color:var(--mut);padding:4px 26px 0}
+.panel{margin:0 16px;border-radius:26px;overflow:hidden;background:var(--glass);border:1px solid var(--brd)}
+.row{width:100%;min-height:54px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;font-size:15px;text-align:left}
+.row+.row,.grp+.grp{border-top:1px solid var(--line)}
+.it{display:flex;justify-content:space-between;gap:12px;padding:8px 18px 8px 34px;font-size:13px;color:var(--tx2)}
+.it small{color:var(--mut);font-size:12px;margin-left:6px}
+.prev{opacity:.6;font-style:italic}
+.chip{height:44px;padding:0 18px;border-radius:22px;background:var(--glass2);border:1px solid var(--brd);font-size:14px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#2A1E06;font-weight:600}
+.btn{width:100%;height:54px;border-radius:27px;background:var(--tx);color:var(--bg);font-size:16px;font-weight:600}
+.btn2{height:46px;padding:0 18px;border-radius:23px;background:var(--glass2);border:1px solid var(--brd);font-size:14px}
+.lbl{display:block;font-size:13px;color:var(--mut);margin:16px 0 8px}
+.inp{width:100%;height:50px;padding:0 16px;border-radius:16px;background:var(--glass2);border:1px solid var(--brd);font-size:16px}
+.big{width:100%;height:60px;border:0;background:transparent;font-size:42px;font-weight:300;letter-spacing:-1.5px;padding:0}
+.bar{height:6px;border-radius:3px;background:rgba(255,250,240,.10);overflow:hidden}
+.bar>div{height:6px;border-radius:3px}
+.muted{color:var(--mut)}
+.err{color:var(--neg);font-size:13px;margin-top:10px;min-height:18px}
+nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:calc(100% - 32px);max-width:448px;padding:6px;border-radius:32px;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:rgba(33,31,29,.85);border:1px solid var(--brd);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:5}
+nav button{position:relative;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:500;color:var(--mut)}
+nav button.on{background:rgba(255,250,240,.12);color:#fff}
+.badge{position:absolute;top:6px;right:8px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--neg);color:#3B1408;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(10,9,8,.6);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:480px;max-height:85vh;overflow:auto;padding:10px 20px calc(30px + env(safe-area-inset-bottom));border-radius:30px 30px 0 0;background:var(--sheet);border-top:1px solid var(--brd)}
+.grab{width:40px;height:5px;border-radius:3px;background:rgba(255,250,240,.25);margin:0 auto 18px}
+.loading{padding:80px 26px;text-align:center;color:var(--mut)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;padding:12px 18px;border-radius:20px;background:var(--tx);color:var(--bg);font-size:14px;font-weight:500;z-index:20}
+textarea{width:100%;min-height:160px;border-radius:16px;background:var(--glass2);border:1px solid var(--brd);color:var(--tx);padding:12px;font:inherit;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">Carregando…</div></div>
+<nav id="nav"></nav>
+<div id="ov"></div>
+<script>
+const S = { tab: 'mes', cfg: null, mes: null, status: null, pend: 0, abertos: {}, rev: null, revFeitas: 0, revSalvou: false,
+  lancar: 'gasolina', acertos: null, acertosYm: null, abertoAcerto: null };
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const ICON = {
+  mes:'<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  revisar:'<path d="M4 7l2 2 4-4M4 17l2 2 4-4M13 7h7M13 17h7"/>',
+  lancar:'<path d="M12 5v14M5 12h14"/>',
+  acertos:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 010 6M21 20c0-2-1.5-4-4-4.6"/>',
+  mais:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  esq:'<path d="M15 6l-6 6 6 6"/>', dir:'<path d="M9 6l6 6-6 6"/>', baixo:'<path d="M6 9l6 6 6-6"/>',
+  renda:'<path d="M12 19V5M6 11l6-6 6 6"/>', debito:'<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M3 10h18"/>',
+  gasolina:'<path d="M5 20V6a2 2 0 012-2h6a2 2 0 012 2v14M4 20h12M15 9h2a2 2 0 012 2v5a1 1 0 002 0V9l-3-3"/>',
+  pagamento:'<path d="M20 6L9 17l-5-5"/>'
+};
+const ic = (n, s) => `<svg width="${s||20}" height="${s||20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = v => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const sinal = v => (v < 0 ? '−' : '') + fmt(Math.abs(v));
+const ymAdd = (ym, n) => { let y = +ym.slice(0,4), m = +ym.slice(5,7) + n; while (m > 12) { m -= 12; y++; } while (m < 1) { m += 12; y--; } return y + '-' + String(m).padStart(2,'0'); };
+const nomeMes = ym => MESES[+ym.slice(5,7) - 1];
+const Nome = ym => { const n = nomeMes(ym); return n[0].toUpperCase() + n.slice(1); };
+const hojeYmd = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const valorNum = s => { s = String(s || '').trim(); if (s.indexOf(',') >= 0) s = s.replace(/\./g,'').replace(',','.'); return Number(s); };
+const $ = id => document.getElementById(id);
+
+function api(fn, ...args) {
+  return new Promise((ok, falha) => google.script.run.withSuccessHandler(ok).withFailureHandler(e => falha(e))[fn](...args));
+}
+function toast(t) {
+  const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d);
+  setTimeout(() => d.remove(), 2600);
+}
+function erroMsg(e) { return (e && e.message) ? e.message.replace(/^Error:\s*/, '') : 'Algo deu errado. Tente de novo.'; }
+
+/* ---------------- navegação ---------------- */
+function renderNav() {
+  const abas = [['mes','Mês'],['revisar','Revisar'],['lancar','Lançar'],['acertos','Acertos'],['mais','Mais']];
+  $('nav').innerHTML = abas.map(([k, n]) => `<button class="${S.tab===k?'on':''}" onclick="ir('${k}')" aria-label="${n}">${ic(k)}${n}${k==='revisar'&&S.pend?`<span class="badge">${S.pend}</span>`:''}</button>`).join('');
+}
+function ir(tab) {
+  if (S.tab === 'revisar' && tab !== 'revisar' && S.revSalvou) atualizarAposRevisao();
+  S.tab = tab; renderNav(); window.scrollTo(0, 0);
+  if (tab === 'mes') renderMes();
+  if (tab === 'revisar') abrirRevisar();
+  if (tab === 'lancar') renderLancar();
+  if (tab === 'acertos') abrirAcertos(S.acertosYm);
+  if (tab === 'mais') renderMais();
+}
+
+/* ---------------- Mês ---------------- */
+function carregarMes(ym) {
+  $('app').innerHTML = '<div class="loading">Carregando ' + nomeMes(ym) + '…</div>';
+  api('apiMes', ym).then(m => { S.mes = m; S.abertos = {}; renderMes(); }).catch(e => $('app').innerHTML = `<div class="loading">${esc(erroMsg(e))}</div>`);
+}
+function renderMes() {
+  const m = S.mes; if (!m) return;
+  const pct = m.renda > 0 ? Math.round(m.saidas / m.renda * 100) : null;
+  const corSobra = m.sobra < 0 ? 'var(--neg)' : 'var(--tx)';
+  const [int, dec] = sinal(m.sobra).split(',');
+  const pagoEm = 'pago em 5 de ' + nomeMes(ymAdd(m.ym, 1));
+  const grupos = m.grupos.map(g => {
+    const aberto = S.abertos[g.nome];
+    const mostra = aberto === 'todos' ? g.itens : g.itens.slice(0, 3);
+    const lista = aberto ? `<div style="padding-bottom:10px">${mostra.map(i => {
+      const nota = [i.r && i.r !== 'Eu' ? i.r : '', i.div].filter(Boolean).join(', ');
+      const val = i.m !== i.v ? `${fmt(i.m)} <small>de ${fmt(i.v)}</small>` : fmt(i.m);
+      return `<div class="it ${i.s==='Previsto'?'prev':''}"><span>${esc(i.d)}${nota?`<small>${esc(nota)}</small>`:''}${i.s==='Previsto'?'<small>previsto</small>':''}${i.x?`<small style="color:var(--neg)">${esc(i.x)}</small>`:''}</span><span>${val}</span></div>`;
+    }).join('') || '<div class="it">Nada neste mês</div>'}
+      ${aberto !== 'todos' && g.itens.length > 3 ? `<button class="btn2" style="margin:6px 18px 0 34px;height:36px;font-size:13px;color:var(--acc)" onclick="S.abertos['${g.nome}']='todos';renderMes()">Ver os ${g.itens.length} itens</button>` : ''}</div>` : '';
+    return `<div class="grp" style="${aberto?'background:rgba(255,250,240,.035)':''}"><button class="row" onclick="alternaGrupo('${g.nome}')"><span>${grupoNome(g.nome)}</span><span style="display:flex;align-items:center;gap:10px"><span>${fmt(g.total)}</span><span class="muted" style="display:flex">${ic(aberto?'baixo':'dir',16)}</span></span></button>${lista}</div>`;
+  }).join('');
+  $('app').innerHTML = `
+  <div class="top">
+    <button class="round" aria-label="Mês anterior" onclick="carregarMes(ymAdd(S.mes.ym,-1))">${ic('esq',18)}</button>
+    <button onclick="abrirMeses()" aria-label="Escolher mês" style="min-height:44px;padding:0 12px;text-align:center">
+      <span style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:16px;font-weight:500">${Nome(m.ym)}${m.ym.slice(0,4)!==m.atual.slice(0,4)?' '+m.ym.slice(0,4):''}${ic('baixo',14)}</span>
+      <span class="muted" style="display:block;font-size:12px">${pagoEm}</span></button>
+    <button class="round" aria-label="Próximo mês" onclick="carregarMes(ymAdd(S.mes.ym,1))">${ic('dir',18)}</button>
+  </div>
+  <div style="padding:38px 26px 0;text-align:center">
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px"><span class="muted" style="font-size:14px">Sobra do mês</span>
+      <button aria-label="Informações do mês e dos bancos" onclick="abrirInfo()" style="width:44px;height:44px;margin:-12px 0;display:flex;align-items:center;justify-content:center"><span style="width:22px;height:22px;border-radius:11px;border:1.5px solid rgba(242,239,234,.45);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--tx2)">i</span></button></div>
+    <div style="font-size:58px;font-weight:300;letter-spacing:-2.5px;line-height:1.05;margin-top:6px;color:${corSobra}">${int}<span style="font-size:30px;letter-spacing:-1px">,${dec}</span></div>
+    <div style="display:flex;justify-content:center;gap:22px;margin-top:14px;font-size:14px"><span><span class="muted">Entra </span><span style="color:var(--pos)">${fmt(m.renda)}</span></span><span><span class="muted">Sai </span>${fmt(m.saidas)}</span></div>
+    ${pct === null ? `<div class="muted" style="font-size:12px;margin-top:14px">Renda deste mês ainda não lançada</div>` : `<div style="margin:18px auto 0;width:240px"><div class="bar"><div style="width:${Math.min(pct,100)}%;background:${pct>100?'var(--neg)':'var(--acc)'}"></div></div><div class="muted" style="margin-top:8px;font-size:12px">${pct}% da renda já comprometida</div></div>`}
+  </div>
+  <div class="panel" style="margin-top:26px">${grupos}</div>`;
+}
+function grupoNome(g) { return { 'Conta fixa':'Contas fixas', 'Parcela':'Parcelas' }[g] || g; }
+function alternaGrupo(g) { S.abertos[g] = S.abertos[g] ? null : 'top'; renderMes(); }
+
+function abrirMeses() {
+  sheet('<div class="loading" style="padding:30px">Carregando…</div>');
+  api('apiMeses').then(r => {
+    const linhas = r.meses.map(x => {
+      const atual = x.ym === S.mes.ym;
+      const fut = x.ym > r.atual, pas = x.ym < r.atual;
+      const sub = pas ? 'fechado' : x.ym === r.atual ? 'mês atual' : 'previsto';
+      const val = x.renda > 0 ? `<span style="font-size:17px;color:${x.sobra<0?'var(--neg)':'var(--pos)'}">${x.sobra<0?'':'+'}${sinal(x.sobra)}</span>` : `<span class="muted" style="font-size:13px">${fut?'Renda não lançada':'Sem renda'}</span>`;
+      return `<button onclick="fecharSheet();carregarMes('${x.ym}')" style="width:100%;min-height:60px;padding:0 16px;border-radius:18px;display:flex;align-items:center;justify-content:space-between;text-align:left;${atual?'background:rgba(242,184,75,.12);border:1px solid rgba(242,184,75,.45)':'border:1px solid transparent'}"><span><span style="display:block;font-size:15px;font-weight:500">${Nome(x.ym)} ${x.ym.slice(0,4)}</span><span class="muted" style="display:block;font-size:12px;margin-top:2px">${sub}</span></span>${val}</button>`;
+    }).join('');
+    sheet(`<div style="font-size:20px;font-weight:500;padding:0 4px">Escolher mês</div><div style="display:flex;flex-direction:column;gap:6px;margin-top:16px">${linhas}</div><div class="muted" style="font-size:12px;margin-top:14px;padding:0 4px">Meses futuros mostram o que já está comprometido: parcelas, contas fixas e débitos.</div>`);
+  }).catch(e => sheet(`<div class="err">${esc(erroMsg(e))}</div>`));
+}
+
+function abrirInfo() {
+  const st = S.status || { bancos: [], sync: '' };
+  const cor = n => n === 'erro' ? 'var(--neg)' : n === 'aviso' ? 'var(--acc)' : 'var(--pos)';
+  const bancos = st.bancos.map(b => `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)"><span style="width:10px;height:10px;border-radius:5px;background:${cor(b.nivel)}"></span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:500">${esc(b.contas)}</span><span class="muted" style="display:block;font-size:12px;margin-top:2px">${esc(b.nivel==='ok'?'Conexão em dia':b.resumo)}</span></span><span style="font-size:13px;color:var(--tx2)">${esc(b.ultima)}</span></div>`).join('') || '<div class="muted" style="padding:12px 0">Sem informações ainda.</div>';
+  sheet(`<div style="font-size:20px;font-weight:500;padding:0 4px">Sobre este mês</div>
+  <div style="margin-top:14px;padding:4px 16px;border-radius:20px;background:rgba(255,250,240,.04)"><div class="muted" style="font-size:13px;padding:10px 0 2px">Conexões com os bancos</div>${bancos}</div>
+  <div style="margin-top:10px;padding:14px 16px;border-radius:20px;background:rgba(255,250,240,.04);display:flex;justify-content:space-between;font-size:14px"><span class="muted">Planilha sincronizada</span><span>${esc(st.sync||'—')}</span></div>
+  <div style="margin-top:10px;padding:14px 16px;border-radius:20px;background:rgba(255,250,240,.04);font-size:13px;color:var(--tx2);line-height:1.5">Sobra = renda do mês menos tudo que é seu: contas fixas, parcelas, cartão, débito e gasolina. O que é de outras pessoas fica nos Acertos.</div>
+  <button class="btn" style="margin-top:18px" id="btnSync" onclick="sincronizar()">Sincronizar agora</button><div class="err" id="errSync"></div>`);
+}
+function sincronizar() {
+  const b = $('btnSync'); if (b) { b.disabled = true; b.textContent = 'Sincronizando… (até 1 minuto)'; }
+  api('apiSincronizar').then(r => { S.status = r.status; S.pend = r.pendentes; renderNav(); fecharSheet(); toast('Sincronizado'); carregarMes(S.mes ? S.mes.ym : null); })
+    .catch(e => { if (b) { b.disabled = false; b.textContent = 'Sincronizar agora'; } const x = $('errSync'); if (x) x.textContent = erroMsg(e); });
+}
+
+function sheet(html) {
+  $('ov').innerHTML = `<div class="overlay" onclick="if(event.target===this)fecharSheet()"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+}
+function fecharSheet() { $('ov').innerHTML = ''; }
+
+/* ---------------- Revisar ---------------- */
+function abrirRevisar() {
+  $('app').innerHTML = '<div class="loading">Buscando compras…</div>';
+  api('apiRevisar').then(r => { S.rev = { lista: r.pendentes, total: r.pendentes.length, sel: null }; S.revFeitas = 0; prepItem(); renderRevisar(); })
+    .catch(e => $('app').innerHTML = `<div class="loading">${esc(erroMsg(e))}</div>`);
+}
+function prepItem() {
+  const it = S.rev.lista[0]; if (!it) return;
+  S.rev.sel = { categoria: it.categoria === 'A revisar' ? '' : it.categoria, resp: it.divisao ? 'Dividir' : (it.responsavel || 'Eu'),
+    divPessoa: 'Duda', divPct: '50' };
+  const m = String(it.divisao || '').match(/^(.+?)\s+([\d.,]+)\s*%?/);
+  if (m) { S.rev.sel.divPessoa = m[1]; S.rev.sel.divPct = m[2]; }
+}
+function renderRevisar() {
+  const R = S.rev, it = R.lista[0];
+  const feitas = R.total - R.lista.length;
+  const pct = R.total ? Math.round(feitas / R.total * 100) : 100;
+  let corpo;
+  if (!it) {
+    corpo = `<div class="panel" style="margin-top:24px;padding:30px 22px;text-align:center"><div style="font-size:20px;font-weight:500">Tudo conferido</div><div class="muted" style="margin-top:6px;font-size:14px">${S.revSalvou?'O mês está sendo atualizado com as suas escolhas.':'Nenhuma compra nova pra revisar.'}</div></div>`;
+  } else {
+    const s = R.sel;
+    const pessoas = S.cfg.pessoas;
+    const chips = pessoas.map(p => `<button class="chip ${s.resp===p?'on':''}" onclick="S.rev.sel.resp='${esc(p)}';renderRevisar()">${p==='Eu'?'Minha':esc(p)}</button>`).join('') + `<button class="chip ${s.resp==='Dividir'?'on':''}" onclick="S.rev.sel.resp='Dividir';renderRevisar()">Dividir</button>`;
+    const dividir = s.resp === 'Dividir' ? `<div style="display:flex;gap:8px;margin-top:10px"><select class="inp" style="flex:1" onchange="S.rev.sel.divPessoa=this.value">${pessoas.filter(p=>p!=='Eu').map(p=>`<option ${p===s.divPessoa?'selected':''}>${esc(p)}</option>`).join('')}</select><input class="inp" style="width:110px" inputmode="decimal" value="${esc(s.divPct)}" oninput="S.rev.sel.divPct=this.value" aria-label="Porcentagem da outra pessoa"><span class="muted" style="align-self:center">%</span></div>` : '';
+    const cats = S.cfg.categorias.map(c => `<option ${c===s.categoria?'selected':''}>${esc(c)}</option>`).join('');
+    const quando = it.data ? it.data.split('-').reverse().slice(0,2).join('/') : '';
+    corpo = `<div class="panel" style="margin-top:24px;padding:22px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div><div style="font-size:18px;font-weight:500">${esc(it.descricao)}</div><div class="muted" style="font-size:13px;margin-top:4px">${esc(it.conta)}, ${quando}${it.parcela?', parcela '+esc(it.parcela):''}</div></div><div style="font-size:30px;font-weight:300;letter-spacing:-1px">${sinal(it.valor)}</div></div>
+      <span class="lbl" style="margin-top:22px">De quem é?</span><div style="display:flex;flex-wrap:wrap;gap:8px">${chips}</div>${dividir}
+      <label class="lbl" for="cat" style="margin-top:22px">Categoria</label><select id="cat" class="inp" onchange="S.rev.sel.categoria=this.value"><option value="">Escolha</option>${cats}</select>
+      <button class="btn" style="margin-top:22px" id="btnConf" onclick="confirmar()">Confirmar</button><div class="err" id="errRev"></div></div>
+      ${R.lista.length>1?`<div class="sub" style="padding-top:22px;font-size:13px">Depois desta</div><div class="panel" style="margin-top:10px">${R.lista.slice(1,4).map((x,i)=>`<div class="row" style="${i?'border-top:1px solid var(--line)':''};font-size:14px"><span>${esc(x.descricao)}</span><span>${fmt(x.valor)}</span></div>`).join('')}</div>`:''}`;
+  }
+  $('app').innerHTML = `<div class="h1">Revisar</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 26px 0"><div class="bar" style="flex:1"><div style="width:${pct}%;background:var(--acc)"></div></div><span class="muted" style="font-size:13px">${feitas} de ${R.total}</span></div>${corpo}`;
+}
+function confirmar() {
+  const R = S.rev, it = R.lista[0], s = R.sel;
+  if (!s.categoria) { $('errRev').textContent = 'Escolha uma categoria.'; return; }
+  let resp = s.resp, div = '';
+  if (resp === 'Dividir') {
+    const p = valorNum(s.divPct);
+    if (!(p > 0 && p < 100)) { $('errRev').textContent = 'A porcentagem precisa ficar entre 1 e 99.'; return; }
+    resp = 'Eu'; div = s.divPessoa + ' ' + String(s.divPct).replace('.', ',') + '%';
+  }
+  const b = $('btnConf'); b.disabled = true; b.textContent = 'Salvando…';
+  api('apiSalvarRevisao', it.id, s.categoria, resp, div).then(() => {
+    R.lista.shift(); S.revSalvou = true; S.pend = Math.max(0, S.pend - 1); renderNav();
+    if (R.lista.length) { prepItem(); renderRevisar(); } else { renderRevisar(); atualizarAposRevisao(); }
+  }).catch(e => { b.disabled = false; b.textContent = 'Confirmar'; $('errRev').textContent = erroMsg(e); });
+}
+function atualizarAposRevisao() {
+  S.revSalvou = false;
+  api('apiRecalcular').then(m => { S.mes = m; if (S.tab === 'mes') renderMes(); toast('Mês atualizado'); }).catch(() => {});
+}
+
+/* ---------------- Lançar ---------------- */
+function renderLancar(msg) {
+  const tiles = [['renda','Renda','Estágio, freela'],['debito','Débito','Avulso ou parcelado'],['gasolina','Gasolina','Abastecimento'],['pagamento','Pagamento','Alguém te pagou']]
+    .map(([k,t,s]) => `<button onclick="S.lancar='${k}';renderLancar()" style="min-height:96px;padding:16px;border-radius:24px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;${S.lancar===k?'background:rgba(242,184,75,.14);border:1px solid rgba(242,184,75,.55)':'background:var(--glass);border:1px solid var(--brd)'}"><span style="color:var(--acc);display:flex">${ic(k,22)}</span><span><span style="display:block;font-size:15px;font-weight:500">${t}</span><span class="muted" style="display:block;font-size:12px;margin-top:2px">${s}</span></span></button>`).join('');
+  $('app').innerHTML = `<div class="h1">Lançar</div><div class="sub">O que aconteceu?</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:22px 16px 0">${tiles}</div>
+  <div class="panel" style="margin-top:14px;padding:20px">${formLancar()}<div class="err" id="errL">${msg?esc(msg):''}</div></div>`;
+  if (S.lancar === 'gasolina') previaGasolina();
+}
+function campoValor(lbl) { return `<label class="lbl" for="fValor" style="margin-top:0">${lbl}</label><input id="fValor" class="big" inputmode="decimal" placeholder="0,00">`; }
+function campoMes(id, ym, lbl) { return `<label class="lbl" for="${id}">${lbl||'Mês do orçamento'}</label><input id="${id}" class="inp" type="month" value="${ym}">`; }
+function formLancar() {
+  const cur = S.mes ? S.mes.atual : new Date().toISOString().slice(0,7);
+  const pessoasSel = (id, inclEu) => `<select id="${id}" class="inp">${S.cfg.pessoas.filter(p=>inclEu||p!=='Eu').map(p=>`<option value="${esc(p)}">${p==='Eu'?'Minha':esc(p)}</option>`).join('')}</select>`;
+  if (S.lancar === 'renda') return `${campoValor('Quanto vai entrar')}${campoMes('fMes', cur)}<label class="lbl" for="fFonte">De onde</label><input id="fFonte" class="inp" list="fontes" placeholder="Estágio"><datalist id="fontes">${S.cfg.fontes.map(f=>`<option value="${esc(f)}">`).join('')}</datalist><button class="btn" style="margin-top:20px" onclick="salvarLancamento()">Salvar renda</button>`;
+  if (S.lancar === 'debito') return `${campoValor('Valor (de cada parcela)')}<label class="lbl" for="fDesc">Descrição</label><input id="fDesc" class="inp" placeholder="Praia">${campoMes('fMes', cur)}<div style="display:flex;gap:10px"><div style="flex:1"><label class="lbl" for="fParc">Parcelas</label><input id="fParc" class="inp" inputmode="numeric" value="1"></div><div style="flex:1"><label class="lbl" for="fResp">De quem é</label>${pessoasSel('fResp', true)}</div></div><label class="lbl" for="fCat">Categoria</label><select id="fCat" class="inp">${S.cfg.categorias.map(c=>`<option>${esc(c)}</option>`).join('')}</select><button class="btn" style="margin-top:20px" onclick="salvarLancamento()">Salvar débito</button>`;
+  if (S.lancar === 'gasolina') {
+    const cards = S.cfg.cartoes.filter(c => !c.conectado);
+    if (!S.cartaoGas && cards.length) S.cartaoGas = cards[0].nome;
+    return `${campoValor('Quanto abasteceu')}<label class="lbl" for="fData">Quando</label><input id="fData" class="inp" type="date" value="${hojeYmd()}" onchange="previaGasolina()"><span class="lbl">Em qual cartão</span><div style="display:flex;gap:8px;flex-wrap:wrap">${cards.map(c=>`<button class="chip ${S.cartaoGas===c.nome?'on':''}" onclick="S.cartaoGas='${esc(c.nome)}';document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.textContent==='${esc(c.nome)}'));previaGasolina()">${esc(c.nome)}</button>`).join('')}</div><div id="prevGas" style="margin-top:16px;font-size:13px;color:var(--tx2)"></div><button class="btn" style="margin-top:20px" onclick="salvarLancamento()">Salvar abastecimento</button>`;
+  }
+  return `${campoValor('Quanto recebeu')}<label class="lbl" for="fPessoa">Quem pagou</label>${pessoasSel('fPessoa', false)}${campoMes('fMes', ymAdd(cur,-1), 'Referente a qual mês')}<label class="lbl" for="fData">Quando recebeu</label><input id="fData" class="inp" type="date" value="${hojeYmd()}"><button class="btn" style="margin-top:20px" onclick="salvarLancamento()">Registrar pagamento</button>`;
+}
+function previaGasolina() {
+  const el = $('prevGas'), d = $('fData'); if (!el || !d || !d.value) return;
+  const c = S.cfg.cartoes.find(x => x.nome === S.cartaoGas); if (!c) { el.textContent = ''; return; }
+  const [y, m, dia] = d.value.split('-').map(Number);
+  const venc = new Date(y, m - 1 + (dia <= c.fech ? 0 : 1) + c.meses, c.venc);
+  const conta = new Date(venc.getFullYear(), venc.getMonth() - 1, 1);
+  el.textContent = `Vence em ${venc.getDate()} de ${MESES[venc.getMonth()]} e entra no orçamento de ${MESES[conta.getMonth()]}.`;
+}
+function salvarLancamento() {
+  const t = S.lancar, v = valorNum($('fValor').value), err = $('errL');
+  if (!(v > 0)) { err.textContent = 'Informe um valor maior que zero.'; return; }
+  let d = { valor: v };
+  if (t === 'renda') { d.mes = $('fMes').value; d.fonte = $('fFonte').value.trim(); if (!d.fonte) { err.textContent = 'Informe de onde vem a renda.'; return; } }
+  if (t === 'debito') { d.mes = $('fMes').value; d.descricao = $('fDesc').value.trim(); d.parcelas = parseInt($('fParc').value, 10) || 1; d.responsavel = $('fResp').value; d.categoria = $('fCat').value; if (!d.descricao) { err.textContent = 'Informe a descrição.'; return; } }
+  if (t === 'gasolina') { d.data = $('fData').value; d.cartao = S.cartaoGas; d.responsavel = 'Eu'; }
+  if (t === 'pagamento') { d.pessoa = $('fPessoa').value; d.mes = $('fMes').value; d.data = $('fData').value; }
+  if ((t !== 'gasolina') && !d.mes) { err.textContent = 'Escolha o mês.'; return; }
+  const b = document.querySelector('.panel .btn'); b.disabled = true; b.textContent = 'Salvando…';
+  api('apiLancar', t, d).then(() => {
+    toast({ renda:'Renda salva', debito:'Débito salvo', gasolina:'Abastecimento salvo', pagamento:'Pagamento registrado' }[t]);
+    S.acertos = null; renderLancar();
+    if (t !== 'pagamento') api('apiMes', S.mes ? S.mes.ym : null).then(m => { S.mes = m; });
+  }).catch(e => { b.disabled = false; b.textContent = 'Salvar'; err.textContent = erroMsg(e); });
+}
+
+/* ---------------- Acertos ---------------- */
+function abrirAcertos(ym) {
+  $('app').innerHTML = '<div class="loading">Carregando acertos…</div>';
+  api('apiAcertos', ym || null).then(a => { S.acertos = a; S.acertosYm = a.ym; renderAcertos(); })
+    .catch(e => $('app').innerHTML = `<div class="loading">${esc(erroMsg(e))}</div>`);
+}
+function renderAcertos() {
+  const a = S.acertos;
+  const [int, dec] = fmt(a.falta).split(',');
+  const pessoas = a.pessoas.map((p, i) => {
+    const pago = p.pago >= p.deve - 0.01;
+    const aberto = S.abertoAcerto === p.nome;
+    const det = aberto ? `<div style="padding:0 18px 16px">${p.itens.map(x=>`<div style="display:flex;justify-content:space-between;padding:7px 0 0;font-size:14px;color:var(--tx2)"><span>${esc(x.d)}${x.s==='Previsto'?' <span class="muted" style="font-size:12px">previsto</span>':''}</span><span>${fmt(x.v)}</span></div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:14px"><button class="btn2" style="flex:1" onclick="copiarCobranca('${esc(p.nome)}')">Copiar cobrança</button>${pago?'':`<button class="btn2" style="flex:1;background:var(--tx);color:var(--bg);border-color:var(--tx);font-weight:600" onclick="recebi('${esc(p.nome)}')">Recebi</button>`}</div></div>` : '';
+    return `<div style="${i?'border-top:1px solid var(--line)':''}"><button class="row" style="min-height:70px;gap:14px" onclick="S.abertoAcerto=S.abertoAcerto==='${esc(p.nome)}'?null:'${esc(p.nome)}';renderAcertos()">
+      <span style="width:42px;height:42px;border-radius:21px;background:var(--glass2);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-weight:500">${esc(p.nome[0])}</span>
+      <span style="flex:1"><span style="display:block;font-weight:500">${esc(p.nome)}</span><span class="muted" style="display:block;font-size:12px;margin-top:2px">${p.itens.length} itens${p.pago>0?', pagou '+fmt(p.pago):''}</span></span>
+      <span style="text-align:right"><span style="display:block;font-size:17px">${fmt(p.deve)}</span><span style="font-size:12px;color:${pago?'var(--pos)':'var(--neg)'}">${pago?'Pago':'Pendente'}</span></span></button>${det}</div>`;
+  }).join('') || '<div class="row muted">Ninguém deve nada neste mês.</div>';
+  $('app').innerHTML = `<div class="top" style="padding-top:28px"><button class="round" aria-label="Mês anterior" onclick="abrirAcertos(ymAdd(S.acertos.ym,-1))">${ic('esq',18)}</button><div style="text-align:center"><div style="font-size:16px;font-weight:500">Acertos de ${nomeMes(a.ym)}</div><div class="muted" style="font-size:12px">cobrados em ${nomeMes(ymAdd(a.ym,1))}</div></div><button class="round" aria-label="Próximo mês" onclick="abrirAcertos(ymAdd(S.acertos.ym,1))">${ic('dir',18)}</button></div>
+  <div style="padding:30px 26px 0"><div class="muted" style="font-size:14px">Ainda falta receber</div><div style="font-size:46px;font-weight:300;letter-spacing:-1.8px;margin-top:4px;color:${a.falta>0?'var(--acc)':'var(--tx)'}">${int}<span style="font-size:24px">,${dec}</span></div></div>
+  <div class="panel" style="margin-top:18px">${pessoas}</div>`;
+}
+function copiarCobranca(nome) {
+  const p = S.acertos.pessoas.find(x => x.nome === nome);
+  const txt = `Oi! Fechamento de ${nomeMes(S.acertos.ym)}:\n` + p.itens.map(x => `• ${x.d}: R$ ${fmt(x.v)}`).join('\n') + `\nTotal: R$ ${fmt(p.deve)}` + (p.pago > 0 ? `\nJá recebi R$ ${fmt(p.pago)}, falta R$ ${fmt(Math.max(0, p.deve - p.pago))}` : '');
+  const fallback = () => { sheet(`<div style="font-size:18px;font-weight:500">Cobrança de ${esc(nome)}</div><div class="muted" style="font-size:13px;margin:6px 0 12px">Toque e segure no texto pra copiar.</div><textarea readonly>${esc(txt)}</textarea>`); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('Cobrança copiada')).catch(fallback); else fallback();
+}
+function recebi(nome) {
+  const p = S.acertos.pessoas.find(x => x.nome === nome);
+  const falta = Math.max(0, p.deve - p.pago);
+  sheet(`<div style="font-size:20px;font-weight:500">${esc(nome)} pagou</div><label class="lbl" for="rv">Valor recebido</label><input id="rv" class="big" inputmode="decimal" value="${fmt(falta)}"><button class="btn" style="margin-top:18px" id="btnRec" onclick="confirmaRecebi('${esc(nome)}')">Registrar pagamento</button><div class="err" id="errRec"></div>`);
+}
+function confirmaRecebi(nome) {
+  const v = valorNum($('rv').value);
+  if (!(v > 0)) { $('errRec').textContent = 'Informe um valor maior que zero.'; return; }
+  $('btnRec').disabled = true; $('btnRec').textContent = 'Salvando…';
+  api('apiLancar', 'pagamento', { valor: v, pessoa: nome, mes: S.acertos.ym, data: hojeYmd() })
+    .then(() => { fecharSheet(); toast('Pagamento registrado'); abrirAcertos(S.acertos.ym); })
+    .catch(e => { $('btnRec').disabled = false; $('btnRec').textContent = 'Registrar pagamento'; $('errRec').textContent = erroMsg(e); });
+}
+
+/* ---------------- Mais ---------------- */
+function renderMais() {
+  const st = S.status || { bancos: [], sync: '' };
+  $('app').innerHTML = `<div class="h1">Mais</div>
+  <div class="panel" style="margin-top:24px">
+    ${st.bancos.map((b,i)=>`<div class="row" style="${i?'border-top:1px solid var(--line)':''}"><span>${esc(b.contas)}</span><span style="font-size:13px;color:${b.nivel==='ok'?'var(--pos)':b.nivel==='aviso'?'var(--acc)':'var(--neg)'}">${b.nivel==='ok'?'Em dia, '+esc(b.ultima):esc(b.resumo)}</span></div>`).join('')}
+    <div class="row" style="border-top:1px solid var(--line)"><span class="muted">Planilha sincronizada</span><span style="font-size:13px">${esc(st.sync||'—')}</span></div>
+  </div>
+  <div style="padding:16px"><button class="btn" id="btnSync" onclick="sincronizar()">Sincronizar agora</button><div class="err" id="errSync"></div></div>
+  <div class="panel"><a class="row" href="${esc(S.cfg.planilha)}" target="_blank" style="color:var(--tx);text-decoration:none"><span>Abrir a planilha</span><span class="muted" style="display:flex">${ic('dir',16)}</span></a></div>
+  <div class="muted" style="font-size:12px;padding:16px 26px">Contas fixas, cartões e regras de categoria são editados na planilha.</div>`;
+}
+
+/* ---------------- início ---------------- */
+api('apiInicio').then(r => {
+  S.cfg = r.config; S.mes = r.mes; S.status = r.status; S.pend = r.pendentes;
+  renderNav(); renderMes();
+}).catch(e => { $('app').innerHTML = `<div class="loading">Não consegui abrir: ${esc(erroMsg(e))}</div>`; });
+</script>
+</body>
+</html>
