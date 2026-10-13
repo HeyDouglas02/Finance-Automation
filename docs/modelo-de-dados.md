@@ -25,7 +25,7 @@ erDiagram
 
 | Tabela | Para quê |
 |---|---|
-| `pessoas` | Quem divide gastos (o dono do app é implícito) |
+| `pessoas` | Quem divide gastos (o dono do app é implícito), com telefone pra cobrança no WhatsApp |
 | `categorias` | Categorias de gasto |
 | `cartoes` | Cartões conectados ou não, com regras de fechamento e vencimento |
 | `regras_categoria` | Texto da descrição → categoria (e divisão padrão opcional) |
