@@ -56,6 +56,7 @@ erDiagram
 | Função | Faz |
 |---|---|
 | `classificar(transacao, categoria, rateios)` | Grava categoria + divisão de uma compra e das parcelas seguintes, numa transação só (regra 11) |
+| `lancar_debito(competencia, descricao, valor, parcelas, categoria, rateios)` | Cria um débito com a divisão, numa transação só (regra 6) |
 
 ## Views
 
