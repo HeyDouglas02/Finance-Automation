@@ -65,3 +65,11 @@ O orçamento de um mês é pago com a renda que cai no mês seguinte, como um sa
 - Para cada fatura: total do banco, soma das compras recebidas, encargos e diferença.
 - Diferenças são mostradas, não corrigidas automaticamente.
 - A fatura é marcada como paga quando o pagamento aparece no cartão.
+
+## 11. Classificação
+
+- Compra nova do banco que não herdou classificação fica **pendente** (categoria *A revisar* ou sugerida por regra).
+- Classificar = escolher **de quem é** (minha, inteira de uma pessoa, ou dividida por valor fixo ou %) e **a categoria**. Confirmar marca como revisada.
+- A soma das partes dos outros não pode passar do valor da compra; o resto é do dono.
+- **Parcelas:** a classificação vale para a parcela escolhida **e as seguintes** da mesma compra, mesmo as já revisadas. As anteriores não mudam. As previstas acompanham sozinhas (herdam da última real).
+- Qualquer compra pode ser reclassificada depois, com a mesma regra.

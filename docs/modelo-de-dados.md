@@ -51,6 +51,12 @@ erDiagram
 - **IDs da Pluggy como chave** em `transacoes` e `faturas`, o que torna a sincronização idempotente (upsert).
 - **Competência gravada na transação**, recalculada a cada sincronização a partir da fatura (ou do dia de fechamento, se a fatura ainda não fechou).
 
+## Funções
+
+| Função | Faz |
+|---|---|
+| `classificar(transacao, categoria, rateios)` | Grava categoria + divisão de uma compra e das parcelas seguintes, numa transação só (regra 11) |
+
 ## Views
 
 | View | Conteúdo |
