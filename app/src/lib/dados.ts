@@ -139,3 +139,41 @@ export async function buscarTransacoes(competencia: string): Promise<Lancamento[
     pendente: naoRevisadas.has(l.ref),
   }));
 }
+
+export type Opcao = { id: number; nome: string };
+export type Rateio = { pessoa_id: number; valor: number | null; percentual: number | null };
+export type Compra = {
+  id: string; descricao: string; valor: number; data: string; cartao: string;
+  parcelaNum: number | null; parcelaTotal: number | null; categoriaId: number | null; rateios: Rateio[];
+};
+
+/** Categorias (sem "A revisar", que não é escolha válida) e pessoas, pra montar a classificação. */
+export async function buscarOpcoes(): Promise<{ categorias: Opcao[]; pessoas: Opcao[] }> {
+  const [c, p] = await Promise.all([
+    supabase.from('categorias').select('id, nome').neq('nome', 'A revisar').order('nome'),
+    supabase.from('pessoas').select('id, nome').order('id'),
+  ]);
+  if (c.error) throw c.error;
+  if (p.error) throw p.error;
+  return { categorias: c.data ?? [], pessoas: p.data ?? [] };
+}
+
+export async function buscarCompra(id: string): Promise<Compra> {
+  const { data, error } = await supabase.from('transacoes')
+    .select('id, descricao, valor, data, parcela_num, parcela_total, categoria_id, cartoes(nome), rateios(pessoa_id, valor, percentual)')
+    .eq('id', id).single();
+  if (error) throw error;
+  const cartao = data.cartoes as unknown as { nome: string } | null;   // relação 1:1, o tipo gerado não sabe
+  return {
+    id: data.id, descricao: data.descricao, valor: num(data.valor), data: data.data, cartao: cartao?.nome ?? '',
+    parcelaNum: data.parcela_num, parcelaTotal: data.parcela_total, categoriaId: data.categoria_id,
+    rateios: (data.rateios ?? []).map(r => ({ pessoa_id: r.pessoa_id, valor: r.valor === null ? null : num(r.valor), percentual: r.percentual === null ? null : num(r.percentual) })),
+  };
+}
+
+/** Grava categoria + divisão (função classificar no banco, regra 11). Devolve quantas compras mudaram (parcelas seguintes incluídas). */
+export async function classificar(id: string, categoriaId: number, rateios: Rateio[]): Promise<number> {
+  const { data, error } = await supabase.rpc('classificar', { p_transacao: id, p_categoria: categoriaId, p_rateios: rateios });
+  if (error) throw error;
+  return data as number;
+}

@@ -70,7 +70,11 @@ export function Transacoes() {
             <span>{grupo}</span>
             <span>{grupo === 'Renda' ? '+ ' : ''}R$ {reais(soma(lista))}</span>
           </div>
-          {lista.map(i => <LinhaTransacao key={i.ref} item={i} />)}
+          {lista.map(i => (
+            <LinhaTransacao key={i.ref} item={i}
+              // só compras reais do cartão são classificáveis; o resto é previsão ou lançamento manual
+              aoTocar={i.ref.startsWith('tx:') ? () => navegar(`/classificar/${i.ref.slice(3)}`) : undefined} />
+          ))}
         </section>
       ))}
     </main>
@@ -87,12 +91,13 @@ function Filtro({ ativo, onClick, children }: { ativo: boolean; onClick: () => v
   );
 }
 
-function LinhaTransacao({ item: i }: { item: Lancamento }) {
+function LinhaTransacao({ item: i, aoTocar }: { item: Lancamento; aoTocar?: () => void }) {
   const renda = i.tipo === 'Renda';
   const detalhes = [i.data ? diaMesCurto(i.data) : null, renda ? null : i.categoria, i.status === 'Real' || i.status === 'Manual' ? null : i.status]
     .filter(Boolean).join(' · ');
+  const Raiz = aoTocar ? 'button' : 'div';
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+    <Raiz onClick={aoTocar} style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
       padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <span style={{ minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600 }}>
@@ -114,6 +119,6 @@ function LinhaTransacao({ item: i }: { item: Lancamento }) {
           </span>
         )}
       </span>
-    </div>
+    </Raiz>
   );
 }
