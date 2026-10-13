@@ -57,6 +57,7 @@ erDiagram
 |---|---|
 | `classificar(transacao, categoria, rateios)` | Grava categoria + divisão de uma compra e das parcelas seguintes, numa transação só (regra 11) |
 | `lancar_debito(competencia, descricao, valor, parcelas, categoria, rateios)` | Cria um débito com a divisão, numa transação só (regra 6) |
+| `mudar_valor_conta_fixa(conta, valor, a_partir)` | Encerra a conta fixa antiga e cria a nova com o valor novo (regra 3) |
 
 ## Views
 
@@ -70,4 +71,4 @@ erDiagram
 | `v_categorias_mes` | Sua parte gasta em cada categoria, por mês |
 | `v_parcelamentos` | Cada parcela do mês (real ou prevista), com a sua parte, quanto falta e o mês da última |
 | `v_ritmo` | Sua parte acumulada dia a dia |
-| `v_faturas_mes` | Fatura de cada cartão por mês: total do banco se fechada; se aberta ou futura, compras que já chegaram + parcelas previstas |
+| `v_faturas_mes` | Fatura de cada cartão por mês: total do banco se fechada; se aberta ou futura, compras que já chegaram + parcelas previstas. Com soma das compras e encargos pra conferência (regra 10) |
