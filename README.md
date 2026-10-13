@@ -34,9 +34,23 @@ flowchart LR
 ```
 
 - **Banco:** PostgreSQL (Supabase), com RLS em todas as tabelas.
-- **Regras de negócio:** em SQL (views) e TypeScript (Edge Functions).
-- **App:** PWA instalável, tema escuro.
+- **Regras de negócio:** em SQL (views e funções) e TypeScript (Edge Functions).
+- **App:** React + TypeScript + Vite, TanStack Query (cache), tema escuro.
 - **Custo:** R$ 0 (planos gratuitos).
+
+## O app
+
+Cinco abas, cada uma responde uma pergunta:
+
+| Aba | Pergunta |
+|---|---|
+| **Mês** | Quanto sobra? Saldo com o resumo (renda − cada cartão − fixas − débitos − gasolina), fatura por cartão com conferência, a receber, categorias e parcelamentos |
+| **Transações** | Pra onde foi? Tudo do mês agrupado, com o filtro **Pendentes** pra classificar compras novas (de quem é + categoria) |
+| **Lançar** | Renda, débito (com divisão e parcelas) e gasolina |
+| **Acertos** | Quem me deve: itens por pessoa, cobrança pelo WhatsApp e "Recebi" |
+| **Mais** | Telefones, contas fixas, sair |
+
+Um botão de olho esconde todos os valores.
 
 ## Estrutura
 
@@ -53,7 +67,7 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 
 1. **Planilha manual:** uma aba por mês, tudo digitado.
 2. **Google Sheets + Apps Script:** sincronização com a Pluggy, regras de categoria, previsão de parcelas e conferência de faturas. Validado contra 3 meses de dados reais (diferença de centavos, todas explicadas).
-3. **Supabase + PWA** *(em andamento)*: banco relacional, app rápido no celular.
+3. **Supabase + app React**: banco relacional com as regras em SQL, app rápido no celular. Em uso desde outubro de 2026.
 
 ## Roadmap
 
@@ -61,9 +75,12 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 - [x] Modelo de dados
 - [x] Migração dos dados
 - [x] Sincronização como Edge Function (diária, via pg_cron)
-- [ ] App: telas Mês e Meses prontas; Revisar, Lançar e Acertos em andamento
+- [x] App: Mês, Transações (com classificação), Lançar, Acertos e Mais
+- [x] Cobrança pelo WhatsApp (link `wa.me` com a mensagem pronta)
+- [x] Conferência de faturas e aviso de divergência
 - [ ] PWA instalável e deploy
-- [ ] Cobrança pelo WhatsApp com Pix copia e cola
+- [ ] Sincronizar pelo app (hoje só a automática, às 6h)
+- [ ] Pix copia e cola na cobrança
 
 ## Rodando localmente
 
@@ -72,6 +89,8 @@ Requer [Supabase CLI](https://supabase.com/docs/guides/cli) e Docker.
 ```bash
 supabase start      # sobe Postgres local
 supabase db reset   # aplica migrations + seed.sql (dados fictícios)
+
+cd app && cp .env.example .env && npm install && npm run dev
 ```
 
 ## Privacidade

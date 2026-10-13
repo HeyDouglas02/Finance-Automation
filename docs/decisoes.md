@@ -33,3 +33,19 @@ O app avisa o que vence e quanto já está comprometido, mas não inicia pagamen
 ## 008 · Cobrança pelo WhatsApp via link, não API
 
 Um link `wa.me` com a mensagem e o Pix copia e cola já preenchidos resolve o caso de uso sem custo. A API oficial exige conta comercial e cobra por mensagem; APIs não oficiais violam os termos do WhatsApp.
+
+## 009 · Revisar dentro de Transações
+
+O design previa uma aba Revisar e uma tela Transações, mas a Revisar já era uma lista de compras com filtro. Eram duas listas quase iguais. Ficou uma aba só, Transações, com o filtro Pendentes para classificar.
+
+## 010 · Gravações de várias linhas em funções do banco
+
+Classificar (categoria + rateios + parcelas seguintes), lançar débito com divisão e mudar o valor de uma conta fixa mexem em mais de uma linha. Cada uma virou uma função SQL (`security invoker`, respeita o RLS) que grava tudo numa transação: o app nunca deixa um registro pela metade.
+
+## 011 · Acerto sem saldo acumulado
+
+Os pagamentos são sempre do valor exato do mês, então cada mês fecha sozinho. Não há crédito ou débito passando de um mês para o outro (a planilha antiga tinha, e quase nunca era usado).
+
+## 012 · Cache no app em vez de buscar a cada tela
+
+Os dados só mudam com a sincronização diária ou quando o próprio app grava algo. Com TanStack Query, cada tela busca uma vez e depois mostra na hora; qualquer gravação marca tudo para atualizar.
