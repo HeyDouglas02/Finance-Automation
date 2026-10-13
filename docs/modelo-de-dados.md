@@ -61,5 +61,6 @@ erDiagram
 | `v_mes` | Renda, saídas por grupo e sobra de cada mês |
 | `v_acertos` | Devido e pago por pessoa e mês |
 | `v_categorias_mes` | Sua parte gasta em cada categoria, por mês |
-| `v_parcelamentos` | Compras parceladas e quanto ainda falta |
+| `v_parcelamentos` | Cada parcela do mês (real ou prevista), com a sua parte, quanto falta e o mês da última |
 | `v_ritmo` | Sua parte acumulada dia a dia |
+| `v_faturas_mes` | Fatura de cada cartão por mês: total do banco se fechada; se aberta ou futura, compras que já chegaram + parcelas previstas |

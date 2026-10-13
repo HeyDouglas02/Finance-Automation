@@ -14,4 +14,16 @@ Tema escuro: fundo grafite quente com brilhos suaves, cartões em vidro e destaq
 
 Componentes: cartão de vidro (`.vidro`), pílula (`.pilula`), botão dourado (`.botao-mel`).
 
-Telas: **Mês** (saldo do mês, fatura, a receber, ritmo e categorias), **Revisar** (uma compra por vez), **Lançar**, **Acertos** e **Mais**. Navegação por uma ilha de abas flutuante. Satélites com "voltar": **Meses** (mês atual, próximos com valor já comprometido, anteriores fechados), Detalhes do mês, Transações e Categoria aberta.
+Abas (ilha flutuante), cada uma responde uma pergunta:
+
+| Aba | Pergunta |
+|---|---|
+| **Mês** | Quanto sobra? Saldo (abre o resumo renda − cada cartão − fixas − débitos − gasolina), fatura por cartão, a receber, ritmo, categorias e parcelamentos |
+| **Transações** | Pra onde foi? Tudo do mês agrupado como no resumo do saldo, com filtro **Pendentes**: compras novas a classificar (de quem é, categoria) |
+| **Lançar** | Registrar renda, débito, gasolina ou pagamento recebido |
+| **Acertos** | Quem me deve e quanto |
+| **Mais** | Contas fixas, sincronizar, sair |
+
+A antiga aba Revisar virou o filtro Pendentes dentro de Transações (eram duas listas de compras quase iguais). As linhas do resumo do saldo abrem Transações já filtrada.
+
+Satélites com "voltar": **Meses** (mês atual, próximos com valor já comprometido, anteriores fechados), Detalhes do mês e Categoria aberta.
