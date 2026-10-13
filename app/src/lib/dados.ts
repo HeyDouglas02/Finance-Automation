@@ -177,3 +177,68 @@ export async function classificar(id: string, categoriaId: number, rateios: Rate
   if (error) throw error;
   return data as number;
 }
+
+export type Acerto = {
+  pessoaId: number; pessoa: string; telefone: string | null;
+  devido: number; falta: number; itens: number; pago: boolean; ultimoPagamento: string | null;
+};
+export type ItemAcerto = { descricao: string; valor: number; previsto: boolean };
+
+/** Quanto cada pessoa deve no mês e se já pagou (regra 9). */
+export async function buscarAcertos(competencia: string): Promise<Acerto[]> {
+  const [a, p] = await Promise.all([
+    supabase.from('v_acertos').select('pessoa, devido, falta, itens, situacao, ultimo_pagamento')
+      .eq('competencia', competencia).gt('devido', 0.009),
+    supabase.from('pessoas').select('id, nome, telefone'),
+  ]);
+  if (a.error) throw a.error;
+  if (p.error) throw p.error;
+  return (a.data ?? []).map(x => {
+    const pessoa = (p.data ?? []).find(q => q.nome === x.pessoa);
+    return {
+      pessoaId: pessoa?.id ?? 0, pessoa: x.pessoa, telefone: pessoa?.telefone ?? null,
+      devido: num(x.devido), falta: num(x.falta), itens: x.itens, pago: x.situacao === 'Pago', ultimoPagamento: x.ultimo_pagamento,
+    };
+  }).sort((x, y) => Number(x.pago) - Number(y.pago) || x.pessoa.localeCompare(y.pessoa, 'pt-BR'));   // pendentes primeiro
+}
+
+export async function buscarItensAcerto(competencia: string, pessoa: string): Promise<ItemAcerto[]> {
+  const { data, error } = await supabase.from('v_partes')
+    .select('descricao, valor, status').eq('competencia', competencia).eq('pessoa', pessoa).order('valor', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(i => ({ descricao: i.descricao, valor: num(i.valor), previsto: i.status === 'Previsto' }));
+}
+
+/** Recebi: pagamento do valor exato do mês (regra 9). */
+export async function registrarPagamento(competencia: string, pessoaId: number, valor: number): Promise<void> {
+  const { error } = await supabase.from('pagamentos').insert({ competencia, pessoa_id: pessoaId, valor, data: new Date().toLocaleDateString('sv-SE') });
+  if (error) throw error;
+}
+
+/** Desfaz o Recebi (apaga os pagamentos da pessoa naquele mês). */
+export async function desfazerPagamento(competencia: string, pessoaId: number): Promise<void> {
+  const { error } = await supabase.from('pagamentos').delete().eq('competencia', competencia).eq('pessoa_id', pessoaId);
+  if (error) throw error;
+}
+
+export type Pessoa = { id: number; nome: string; telefone: string | null };
+
+export async function buscarPessoas(): Promise<Pessoa[]> {
+  const { data, error } = await supabase.from('pessoas').select('id, nome, telefone').order('id');
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Telefone só com dígitos, DDI 55 na frente se faltar ("(41) 99999-8888" → "5541999998888"). Vazio = null. */
+export function normalizarTelefone(digitado: string): string | null {
+  const digitos = digitado.replace(/\D/g, '');
+  return !digitos ? null : digitos.length <= 11 ? '55' + digitos : digitos;
+}
+
+export async function salvarTelefone(id: number, digitado: string): Promise<string | null> {
+  const telefone = normalizarTelefone(digitado);
+  if (telefone && !/^\d{12,13}$/.test(telefone)) throw new Error('Número inválido: use DDD + número');
+  const { error } = await supabase.from('pessoas').update({ telefone }).eq('id', id);
+  if (error) throw error;
+  return telefone;
+}

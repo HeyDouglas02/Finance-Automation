@@ -125,7 +125,7 @@ export function Mes() {
           aoTocar={fatura ? () => setVerFaturas(!verFaturas) : undefined} aberto={verFaturas} />
         <CartaoPequeno titulo="A receber" valor={`R$ ${reais(receber.total)}`}
           rodape={receber.pessoas ? `${receber.pessoas} ${receber.pessoas === 1 ? 'pessoa' : 'pessoas'}` : 'Tudo recebido'}
-          aoTocar={() => navegar('/acertos')} />
+          aoTocar={() => navegar(`/acertos?mes=${competencia}`)} />
       </div>
 
       {verFaturas && fatura && (

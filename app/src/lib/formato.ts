@@ -42,3 +42,9 @@ export function diaMesCurto(data: string): string {
   const [, mes, dia] = data.split('-').map(Number);
   return `${dia} de ${curtos[mes - 1]}`;
 }
+
+/** "5541999998888" → "(41) 99999-8888" */
+export function telefoneLegivel(telefone: string): string {
+  const n = telefone.slice(2);   // sem o 55
+  return `(${n.slice(0, 2)}) ${n.slice(2, -4)}-${n.slice(-4)}`;
+}
