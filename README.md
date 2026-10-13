@@ -48,7 +48,7 @@ Cinco abas, cada uma responde uma pergunta:
 | **Transações** | Pra onde foi? Tudo do mês agrupado, com o filtro **Pendentes** pra classificar compras novas (de quem é + categoria) |
 | **Lançar** | Renda, débito (com divisão e parcelas) e gasolina |
 | **Acertos** | Quem me deve: itens por pessoa, cobrança pelo WhatsApp e "Recebi" |
-| **Mais** | Telefones, contas fixas, sair |
+| **Mais** | Status dos bancos, telefones, contas fixas, sair |
 
 Um botão de olho esconde todos os valores.
 

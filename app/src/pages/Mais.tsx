@@ -5,9 +5,10 @@ import { buscarPessoas, normalizarTelefone, salvarTelefone, type Pessoa } from '
 import { telefoneLegivel } from '../lib/formato';
 import { supabase } from '../lib/supabase';
 import { ContasFixas } from '../components/ContasFixas';
+import { Conexoes } from '../components/Conexoes';
 import { TituloAba } from '../components/BotaoOlho';
 
-/** Aba Mais: telefones (cobrança no WhatsApp), contas fixas e sair. */
+/** Aba Mais: status dos bancos, telefones (cobrança no WhatsApp), contas fixas e sair. */
 export function Mais() {
   const consulta = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas });
   const pessoas: Pessoa[] | null = consulta.data ?? null;
@@ -17,6 +18,8 @@ export function Mais() {
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <TituloAba>Mais</TituloAba>
+
+      <Conexoes />
 
       <div style={{ fontSize: 15, fontWeight: 600, margin: '6px 4px 0' }}>Pessoas</div>
       {erro && <div role="alert" style={{ color: 'var(--negativo)' }}>Erro: {erro}</div>}

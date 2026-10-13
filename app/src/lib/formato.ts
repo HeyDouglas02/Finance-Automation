@@ -62,3 +62,15 @@ export function competenciaGasolina(data: string, cartao: { diaFechamento: numbe
   const vencimento = somaMes(competencia, 1).slice(0, 8) + String(cartao.diaVencimento).padStart(2, '0');
   return { competencia, vencimento };
 }
+
+/** Data e hora (ISO) → "hoje às 20:23", "ontem às 06:00" ou "11 de out. às 20:23", no fuso local. */
+export function quandoLegivel(iso: string): string {
+  const d = new Date(iso);
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dia = d.toLocaleDateString('sv-SE');
+  const hoje = new Date();
+  const ontem = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 1).toLocaleDateString('sv-SE');
+  if (dia === hoje.toLocaleDateString('sv-SE')) return `hoje às ${hora}`;
+  if (dia === ontem) return `ontem às ${hora}`;
+  return `${diaMesCurto(dia)} às ${hora}`;
+}

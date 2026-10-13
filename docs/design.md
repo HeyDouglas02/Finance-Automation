@@ -24,7 +24,7 @@ Abas (ilha flutuante), cada uma responde uma pergunta:
 | **Transações** | Pra onde foi? Tudo do mês agrupado como no resumo do saldo, com filtro **Pendentes**: compras novas a classificar (de quem é, categoria) |
 | **Lançar** | Registrar renda, débito ou gasolina (pagamento recebido é o "Recebi" dos Acertos), com a lista do que já foi lançado no mês |
 | **Acertos** | Quem me deve e quanto |
-| **Mais** | Telefones das pessoas, contas fixas (criar, mudar valor, encerrar), sair |
+| **Mais** | Status dos bancos (quando o Meu Pluggy atualizou e quando o app leu), telefones das pessoas, contas fixas (criar, mudar valor, encerrar), sair |
 
 A antiga aba Revisar virou o filtro Pendentes dentro de Transações (eram duas listas de compras quase iguais). As linhas do resumo do saldo abrem Transações já filtrada.
 

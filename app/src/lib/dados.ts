@@ -340,3 +340,20 @@ export async function mudarValorContaFixa(id: number, valor: number, aPartir: st
   const { error } = await supabase.rpc('mudar_valor_conta_fixa', { p_conta: id, p_valor: valor, p_a_partir: aPartir });
   if (error) throw error;
 }
+
+export type Conexao = {
+  contas: string; status: string; execucao: string | null; avisos: string | null;
+  ultimaAtualizacao: string | null;   // quando o Meu Pluggy buscou no banco
+  sincronizadoEm: string | null;      // quando a nossa sincronização leu do Meu Pluggy
+};
+
+/** Status de cada banco conectado (gravado pela sincronização). */
+export async function buscarConexoes(): Promise<Conexao[]> {
+  const { data, error } = await supabase.from('conexoes')
+    .select('contas, status, execucao, avisos, ultima_atualizacao, sincronizado_em').order('contas');
+  if (error) throw error;
+  return (data ?? []).map(c => ({
+    contas: c.contas, status: c.status, execucao: c.execucao, avisos: c.avisos,
+    ultimaAtualizacao: c.ultima_atualizacao, sincronizadoEm: c.sincronizado_em,
+  }));
+}
