@@ -19,6 +19,10 @@
 
 html, body, #root { margin: 0; min-height: 100%; }
 
+/* fundo escuro também no html: no iPhone, o "elástico" ao puxar a tela e a
+   barra do relógio mostram o que está atrás do body (sem isso, branco) */
+html { background-color: #0A0A09; color-scheme: dark; }
+
 body {
   background:
     radial-gradient(60% 40% at 100% 20%, rgba(235, 110, 80, 0.14), transparent 70%),
