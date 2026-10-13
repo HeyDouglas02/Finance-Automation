@@ -4,6 +4,7 @@ import { Ilha } from './components/Ilha';
 import { Login } from './pages/Login';
 import { Mes } from './pages/Mes';
 import { Meses } from './pages/Meses';
+import { Transacoes } from './pages/Transacoes';
 import { EmBreve } from './pages/EmBreve';
 
 export function App() {
@@ -17,7 +18,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<Mes />} />
         <Route path="/meses" element={<Meses />} />
-        <Route path="/revisar" element={<EmBreve titulo="Revisar" />} />
+        <Route path="/transacoes" element={<Transacoes />} />
         <Route path="/lancar" element={<EmBreve titulo="Lançar" />} />
         <Route path="/acertos" element={<EmBreve titulo="Acertos" />} />
         <Route path="/mais" element={<EmBreve titulo="Mais" />} />

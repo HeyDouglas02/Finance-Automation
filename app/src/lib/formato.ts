@@ -31,6 +31,11 @@ export function somaMes(competencia: string, n: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+/** "2026-10-08" → "Venceu" se já passou (fuso local), senão "Vence" */
+export function venceOuVenceu(data: string): string {
+  return data < new Date().toLocaleDateString('sv-SE') ? 'Venceu' : 'Vence';
+}
+
 /** "2026-11-08" → "8 de nov." */
 export function diaMesCurto(data: string): string {
   const curtos = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];

@@ -3,7 +3,7 @@ import { Icone, type NomeIcone } from './Icone';
 
 const ABAS: { rota: string; nome: string; icone: NomeIcone }[] = [
   { rota: '/', nome: 'Mês', icone: 'mes' },
-  { rota: '/revisar', nome: 'Revisar', icone: 'revisar' },
+  { rota: '/transacoes', nome: 'Transações', icone: 'transacoes' },
   { rota: '/lancar', nome: 'Lançar', icone: 'lancar' },
   { rota: '/acertos', nome: 'Acertos', icone: 'acertos' },
   { rota: '/mais', nome: 'Mais', icone: 'mais' },

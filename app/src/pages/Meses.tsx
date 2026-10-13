@@ -22,11 +22,15 @@ export function Meses() {
   // buscarMeses vem do mais novo pro mais antigo
   const doMesAtual = meses?.find(m => m.competencia === atual);
   const proximos = (meses ?? []).filter(m => m.competencia > atual && (m.saidas > 0 || m.renda > 0)).reverse();
-  const anteriores = (meses ?? []).filter(m => m.competencia < atual);
+  // antes do primeiro mês com renda a importação está incompleta: não mostra
+  const comRenda = (meses ?? []).filter(m => m.renda > 0);
+  const primeiro = comRenda[comRenda.length - 1]?.competencia ?? atual;
+  const anteriores = (meses ?? []).filter(m => m.competencia < atual && m.competencia >= primeiro);
   const proximosVisiveis = verTodos ? proximos : proximos.slice(0, PROXIMOS_VISIVEIS);
 
   // replace: escolher um mês volta pra tela Mês sem empilhar a tela Meses no histórico
-  const abrir = (competencia: string) => navegar(`/?mes=${competencia}`, { replace: true });
+  const para = params.get('para') ?? '/';   // tela que abriu a lista (Mês ou Transações)
+  const abrir = (competencia: string) => navegar(`${para}?mes=${competencia}`, { replace: true });
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

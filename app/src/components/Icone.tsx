@@ -1,7 +1,7 @@
 /** Ícones de linha usados no app (mesmos traços do design). */
 const CAMINHOS = {
   mes: 'M3 11l9-7 9 7 M5 10v9h14v-9 M10 19v-5h4v5',
-  revisar: 'M4 7h16v13H4z M9 13l2 2 4-4',
+  transacoes: 'M9 6h11 M9 12h11 M9 18h11 M4.5 6h.01 M4.5 12h.01 M4.5 18h.01',
   lancar: 'M12 5v14 M5 12h14',
   acertos: 'M5 5h5v5H5z M14 5h5v5h-5z M5 14h5v5H5z M14 14h5v5h-5z',
   mais: 'M5 7h14 M5 12h14 M5 17h14',
