@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { buscarMeses, type ResumoMes } from '../lib/dados';
 import { mesAtual, nomeMes, reaisComSinal } from '../lib/formato';
@@ -13,11 +14,10 @@ export function Meses() {
   const [params] = useSearchParams();
   const selecionado = params.get('mes') ?? mesAtual();
   const atual = mesAtual();
-  const [meses, setMeses] = useState<ResumoMes[] | null>(null);
   const [verTodos, setVerTodos] = useState(false);
-  const [erro, setErro] = useState('');
-
-  useEffect(() => { buscarMeses().then(setMeses).catch(e => { setErro(e.message); setMeses([]); }); }, []);
+  const consulta = useQuery({ queryKey: ['meses'], queryFn: buscarMeses });
+  const erro = consulta.error?.message ?? '';
+  const meses: ResumoMes[] | null = consulta.data ?? (consulta.error ? [] : null);   // null = carregando
 
   // buscarMeses vem do mais novo pro mais antigo
   const doMesAtual = meses?.find(m => m.competencia === atual);

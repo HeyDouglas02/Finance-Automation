@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useSessao } from './hooks/useSessao';
+import { OcultoContexto, gravarOculto, lerOculto } from './hooks/useOculto';
+import { definirOculto } from './lib/formato';
 import { Ilha } from './components/Ilha';
 import { Login } from './pages/Login';
 import { Mes } from './pages/Mes';
@@ -12,11 +15,15 @@ import { Lancar } from './pages/Lancar';
 
 export function App() {
   const sessao = useSessao();
+  const [oculto, setOculto] = useState(lerOculto);
+  definirOculto(oculto);   // antes das telas renderizarem: reais() já sai com "•••"
+  const alternar = () => { gravarOculto(!oculto); setOculto(!oculto); };
 
   if (sessao === undefined) return null;   // verificando o login
   if (sessao === null) return <Login />;    // deslogado
 
   return (
+    <OcultoContexto.Provider value={{ oculto, alternar }}>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Mes />} />
@@ -29,5 +36,6 @@ export function App() {
       </Routes>
       <Ilha />
     </BrowserRouter>
+    </OcultoContexto.Provider>
   );
 }

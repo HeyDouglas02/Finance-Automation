@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { cliente } from '../lib/cache';
 
 /**
  * Acompanha se existe alguém logado.
@@ -11,7 +12,10 @@ export function useSessao() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_evento, nova) => setSessao(nova));
+    const { data } = supabase.auth.onAuthStateChange((evento, nova) => {
+      if (evento === 'SIGNED_OUT') cliente.clear();   // saiu: nada de dado em memória
+      setSessao(nova);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 

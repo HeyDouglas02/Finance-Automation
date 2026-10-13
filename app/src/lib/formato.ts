@@ -1,10 +1,16 @@
+// botão de olho: com valores ocultos, todo número em reais vira "•••" (estado mantido pelo App)
+let oculto = false;
+export function definirOculto(valor: boolean) { oculto = valor; }
+
 /** 1617.76 → "1.617,76" */
 export function reais(valor: number): string {
+  if (oculto) return '•••';
   return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 /** 1617.76 → "R$ 1.617,76" e -232.76 → "−R$ 232,76" */
 export function reaisComSinal(valor: number): string {
+  if (oculto) return 'R$ •••';   // nem o sinal aparece
   return (valor < 0 ? '−' : '') + 'R$ ' + reais(Math.abs(valor));
 }
 

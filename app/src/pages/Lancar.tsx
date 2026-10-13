@@ -1,4 +1,6 @@
-import { useEffect, useState, type InputHTMLAttributes } from 'react';
+import { useState, type InputHTMLAttributes } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
   buscarCartoesManuais, buscarFontesRenda, buscarLancados, buscarOpcoes, excluirLancado,
@@ -9,6 +11,7 @@ import { competenciaGasolina, diaMesCurto, mesAtual, nomeMes, reais } from '../l
 import { SeletorMes } from '../components/SeletorMes';
 import { Chip, DIVISAO_MINHA, Divisao, Titulo, calcularDivisao, type EstadoDivisao } from '../components/Divisao';
 import { Icone } from '../components/Icone';
+import { TituloAba } from '../components/BotaoOlho';
 
 type Tipo = 'renda' | 'debito' | 'gasolina';
 const NOMES: Record<Tipo, string> = { renda: 'Renda', debito: 'Débito', gasolina: 'Gasolina' };
@@ -21,21 +24,14 @@ export function Lancar() {
   const [params] = useSearchParams();
   const competencia = params.get('mes') ?? mesAtual();
   const [tipo, setTipo] = useState<Tipo>('renda');
-  const [lancados, setLancados] = useState<Lancado[] | null>(null);
-  const [recarregar, setRecarregar] = useState(0);
   const [aviso, setAviso] = useState('');
+  const lancados: Lancado[] | null = useQuery({ queryKey: ['lancados', competencia], queryFn: () => buscarLancados(competencia) }).data ?? null;
 
-  useEffect(() => {
-    let valido = true;   // trocou de mês antes da resposta chegar: descarta a antiga
-    buscarLancados(competencia).then(l => { if (valido) setLancados(l); }).catch(() => { if (valido) setLancados([]); });
-    return () => { valido = false; };
-  }, [competencia, recarregar]);
-
-  const salvou = (texto: string) => { setAviso(texto); setRecarregar(recarregar + 1); };
+  const salvou = (texto: string) => { setAviso(texto); dadosMudaram(); };
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h1 className="titulo">Lançar</h1>
+      <TituloAba>Lançar</TituloAba>
       {tipo !== 'gasolina' && <SeletorMes competencia={competencia} rota="/lancar" />}
 
       <div style={{ display: 'flex', gap: 8 }}>
@@ -50,7 +46,7 @@ export function Lancar() {
 
       {aviso && <div role="status" style={{ color: 'var(--positivo)', fontSize: 14, padding: '0 4px' }}>{aviso}</div>}
 
-      <ListaLancados competencia={competencia} lancados={lancados} mudou={() => setRecarregar(recarregar + 1)} />
+      <ListaLancados competencia={competencia} lancados={lancados} mudou={dadosMudaram} />
     </main>
   );
 }
@@ -78,10 +74,9 @@ function useSalvar(acao: () => Promise<void>, depois: () => void) {
 }
 
 function FormRenda({ competencia, salvou }: { competencia: string; salvou: (t: string) => void }) {
-  const [fontes, setFontes] = useState<string[]>([]);
+  const fontes = useQuery({ queryKey: ['fontesRenda'], queryFn: buscarFontesRenda }).data ?? [];
   const [fonte, setFonte] = useState('');
   const [valor, setValor] = useState('');
-  useEffect(() => { buscarFontesRenda().then(setFontes).catch(() => {}); }, []);
 
   const { salvando, erro, salvar } = useSalvar(
     () => lancarRenda(competencia, fonte, numero(valor)),
@@ -107,13 +102,12 @@ function FormRenda({ competencia, salvou }: { competencia: string; salvou: (t: s
 }
 
 function FormDebito({ competencia, salvou }: { competencia: string; salvou: (t: string) => void }) {
-  const [opcoes, setOpcoes] = useState<{ categorias: Opcao[]; pessoas: Opcao[] }>({ categorias: [], pessoas: [] });
+  const opcoes: { categorias: Opcao[]; pessoas: Opcao[] } = useQuery({ queryKey: ['opcoes'], queryFn: buscarOpcoes }).data ?? { categorias: [], pessoas: [] };
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
   const [parcelas, setParcelas] = useState('1');
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
   const [divisao, setDivisao] = useState<EstadoDivisao>(DIVISAO_MINHA);
-  useEffect(() => { buscarOpcoes().then(setOpcoes).catch(() => {}); }, []);
 
   const n = Math.max(1, Math.floor(numero(parcelas)));
   const { rateios, passou, incompleta } = calcularDivisao(divisao, Math.abs(numero(valor)));
@@ -159,13 +153,11 @@ function FormDebito({ competencia, salvou }: { competencia: string; salvou: (t: 
 }
 
 function FormGasolina({ salvou }: { salvou: (t: string) => void }) {
-  const [cartoes, setCartoes] = useState<CartaoManual[]>([]);
-  const [cartaoId, setCartaoId] = useState<number | null>(null);
+  const cartoes: CartaoManual[] = useQuery({ queryKey: ['cartoesManuais'], queryFn: buscarCartoesManuais }).data ?? [];
+  const [escolhido, setCartaoId] = useState<number | null>(null);
+  const cartaoId = escolhido ?? cartoes[0]?.id ?? null;   // primeiro cartão até você escolher outro
   const [valor, setValor] = useState('');
   const [data, setData] = useState(new Date().toLocaleDateString('sv-SE'));
-  useEffect(() => {
-    buscarCartoesManuais().then(c => { setCartoes(c); setCartaoId(c[0]?.id ?? null); }).catch(() => {});
-  }, []);
 
   const cartao = cartoes.find(c => c.id === cartaoId);
   const previsao = cartao && data ? competenciaGasolina(data, cartao) : null;

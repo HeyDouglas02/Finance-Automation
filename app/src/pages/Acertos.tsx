@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
   buscarAcertos, buscarItensAcerto, desfazerPagamento, registrarPagamento,
@@ -7,33 +9,25 @@ import {
 import { diaMesCurto, mesAtual, nomeMes, reais, somaMes } from '../lib/formato';
 import { SeletorMes } from '../components/SeletorMes';
 import { Icone } from '../components/Icone';
+import { TituloAba } from '../components/BotaoOlho';
 
 /** Aba Acertos: quem deve quanto no mês, cobrança pelo WhatsApp e "Recebi" (regra 9). */
 export function Acertos() {
   const [params] = useSearchParams();
   const competencia = params.get('mes') ?? mesAtual();
-  const [acertos, setAcertos] = useState<Acerto[] | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
-  const [erro, setErro] = useState('');
-  const [recarregar, setRecarregar] = useState(0);
+  const consulta = useQuery({ queryKey: ['acertos', competencia], queryFn: () => buscarAcertos(competencia) });
+  const erro = consulta.error?.message ?? '';
+  const acertos: Acerto[] | null = consulta.data ?? (consulta.error ? [] : null);   // null = carregando
 
-  useEffect(() => {
-    let valido = true;   // trocou de mês antes da resposta chegar: descarta a antiga
-    setErro('');
-    buscarAcertos(competencia)
-      .then(a => { if (valido) setAcertos(a); })
-      .catch(e => { if (valido) { setErro(e.message); setAcertos([]); } });
-    return () => { valido = false; };
-  }, [competencia, recarregar]);
-
-  useEffect(() => { setAcertos(null); setAberta(null); }, [competencia]);
+  useEffect(() => { setAberta(null); }, [competencia]);
 
   const falta = (acertos ?? []).reduce((t, a) => t + (a.pago ? 0 : a.falta), 0);
   const mesCobranca = nomeMes(somaMes(competencia, 1)).split(' ')[0].toLowerCase();
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h1 className="titulo">Acertos</h1>
+      <TituloAba>Acertos</TituloAba>
       <SeletorMes competencia={competencia} rota="/acertos" />
 
       {erro && <div role="alert" style={{ color: 'var(--negativo)' }}>Erro: {erro}</div>}
@@ -54,7 +48,7 @@ export function Acertos() {
       {acertos?.map(a => (
         <CartaoPessoa key={competencia + a.pessoa} acerto={a} competencia={competencia}
           aberta={aberta === a.pessoa} alternar={() => setAberta(aberta === a.pessoa ? null : a.pessoa)}
-          mudou={() => setRecarregar(recarregar + 1)} />
+          mudou={dadosMudaram} />
       ))}
     </main>
   );
@@ -63,15 +57,16 @@ export function Acertos() {
 function CartaoPessoa({ acerto: a, competencia, aberta, alternar, mudou }: {
   acerto: Acerto; competencia: string; aberta: boolean; alternar: () => void; mudou: () => void;
 }) {
-  const [itens, setItens] = useState<ItemAcerto[] | null>(null);
+  // itens só são buscados quando o cartão abre (e ficam em cache)
+  const itensConsulta = useQuery({
+    queryKey: ['itensAcerto', competencia, a.pessoa], queryFn: () => buscarItensAcerto(competencia, a.pessoa), enabled: aberta,
+  });
+  const itens: ItemAcerto[] | null = itensConsulta.data ?? null;
   const [confirmando, setConfirmando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
-  useEffect(() => {
-    if (aberta && itens === null) buscarItensAcerto(competencia, a.pessoa).then(setItens).catch(e => setErro(e.message));
-    if (!aberta) setConfirmando(false);
-  }, [aberta, itens, competencia, a.pessoa]);
+  useEffect(() => { if (!aberta) setConfirmando(false); }, [aberta]);
 
   const executar = async (acao: () => Promise<void>) => {
     setSalvando(true);
@@ -110,7 +105,7 @@ function CartaoPessoa({ acerto: a, competencia, aberta, alternar, mudou }: {
             </div>
           ))}
 
-          {erro && <div role="alert" style={{ color: 'var(--negativo)', fontSize: 13, marginTop: 8 }}>{erro}</div>}
+          {(erro || itensConsulta.error) && <div role="alert" style={{ color: 'var(--negativo)', fontSize: 13, marginTop: 8 }}>{erro || itensConsulta.error?.message}</div>}
 
           {a.pago ? (
             <button onClick={() => executar(() => desfazerPagamento(competencia, a.pessoaId))} disabled={salvando}

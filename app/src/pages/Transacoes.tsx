@@ -1,8 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { buscarTransacoes, type Lancamento } from '../lib/dados';
 import { diaMesCurto, mesAtual, reais } from '../lib/formato';
 import { SeletorMes } from '../components/SeletorMes';
+import { TituloAba } from '../components/BotaoOlho';
 
 /** Aba Transações: tudo do mês, agrupado como no resumo do saldo. Filtros: Pendentes e um grupo (vindo do resumo). */
 export function Transacoes() {
@@ -13,18 +15,9 @@ export function Transacoes() {
   const categoriaFiltro = params.get('categoria');
   const soPendentes = params.get('filtro') === 'pendentes';
 
-  const [itens, setItens] = useState<Lancamento[] | null>(null);
-  const [erro, setErro] = useState('');
-
-  useEffect(() => {
-    let valido = true;   // trocou de mês antes da resposta chegar: descarta a antiga
-    setItens(null);
-    setErro('');
-    buscarTransacoes(competencia)
-      .then(t => { if (valido) setItens(t); })
-      .catch(e => { if (valido) { setErro(e.message); setItens([]); } });
-    return () => { valido = false; };
-  }, [competencia]);
+  const consulta = useQuery({ queryKey: ['transacoes', competencia], queryFn: () => buscarTransacoes(competencia) });
+  const erro = consulta.error?.message ?? '';
+  const itens: Lancamento[] | null = consulta.data ?? (consulta.error ? [] : null);   // null = carregando
 
   // filtros moram na URL: o "voltar" e o link do resumo do saldo funcionam sem estado extra
   const filtrar = (mudancas: Record<string, string | null>) => {
@@ -47,7 +40,7 @@ export function Transacoes() {
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h1 className="titulo">Transações</h1>
+      <TituloAba>Transações</TituloAba>
       <SeletorMes competencia={competencia} rota="/transacoes" />
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -117,6 +110,8 @@ function LinhaTransacao({ item: i, aoTocar }: { item: Lancamento; aoTocar?: () =
           )}
         </span>
         {detalhes && <span className="mutado" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{detalhes}</span>}
+        {/* valor diferente do esperado: conta fixa cobrada diferente ou parcela que mudou */}
+        {i.divergencia && <span style={{ display: 'block', fontSize: 12, marginTop: 2, color: 'var(--mel)' }}>⚠ {divergenciaLegivel(i.divergencia)}</span>}
       </span>
       <span style={{ textAlign: 'right', flexShrink: 0 }}>
         <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: renda ? 'var(--mel)' : undefined }}>
@@ -130,4 +125,10 @@ function LinhaTransacao({ item: i, aoTocar }: { item: Lancamento; aoTocar?: () =
       </span>
     </Raiz>
   );
+}
+
+/** "Esperado 1,234.50" (formato do banco) → "Esperado R$ 1.234,50" */
+function divergenciaLegivel(texto: string): string {
+  const m = texto.match(/^(.*) ([\d.,]+)$/);
+  return m ? `${m[1]} R$ ${reais(Number(m[2].replace(/,/g, '')))}` : texto;
 }

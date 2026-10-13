@@ -4,7 +4,10 @@ import { supabase } from './supabase';
 
 export type ResumoMes = { competencia: string; renda: number; saidas: number; saldo: number };
 export type Categoria = { categoria: string; total: number };
-export type FaturaCartao = { cartao: string; total: number; previsto: number; vencimento: string; fechada: boolean };
+export type FaturaCartao = {
+  cartao: string; total: number; previsto: number; vencimento: string; fechada: boolean;
+  somaCompras: number; encargos: number;   // conferência (regra 10), só em fatura fechada
+};
 export type Fatura = {
   total: number; real: number; previsto: number; vencimento: string;
   situacao: 'fechada' | 'aberta' | 'prevista'; porCartao: FaturaCartao[];
@@ -39,10 +42,13 @@ export async function buscarMeses(): Promise<ResumoMes[]> {
 /** Faturas dos cartões no mês do orçamento: fechada = total do banco; aberta = compras que já chegaram + parcelas previstas. */
 export async function buscarFatura(competencia: string): Promise<Fatura> {
   const { data, error } = await supabase.from('v_faturas_mes')
-    .select('cartao, real, previsto, total, vencimento, fechada').eq('competencia', competencia).order('vencimento');
+    .select('cartao, real, previsto, total, vencimento, fechada, soma_compras, encargos').eq('competencia', competencia).order('vencimento');
   if (error) throw error;
   if (!data?.length) return null;
-  const porCartao = data.map(f => ({ cartao: f.cartao, total: num(f.total), previsto: num(f.previsto), vencimento: f.vencimento, fechada: f.fechada }));
+  const porCartao = data.map(f => ({
+    cartao: f.cartao, total: num(f.total), previsto: num(f.previsto), vencimento: f.vencimento, fechada: f.fechada,
+    somaCompras: num(f.soma_compras), encargos: num(f.encargos),
+  }));
   const situacao = porCartao.every(f => f.fechada) ? 'fechada'
     : data.some(f => num(f.real) !== 0) ? 'aberta' : 'prevista';   // nada real ainda = mês futuro
   return {
@@ -117,13 +123,14 @@ export async function buscarCategorias(competencia: string): Promise<Categoria[]
 export type Lancamento = {
   ref: string; grupo: string; tipo: string; descricao: string; data: string | null;
   categoria: string | null; status: string; valor: number; minhaParte: number; pessoas: string[]; pendente: boolean;
+  divergencia: string | null;   // ex.: "Esperado 65,00" ou "Parcela anterior 98,35" (regras 3 e 5)
 };
 
 /** Tudo do mês (compras, parcelas, fixas, débitos, gasolina, renda), mais recente primeiro. */
 export async function buscarTransacoes(competencia: string): Promise<Lancamento[]> {
   const [lancamentos, pendentes] = await Promise.all([
     supabase.from('v_lancamentos')
-      .select('ref, tipo, descricao, valor, minha_parte, dividido_com, categoria, status, origem, data')
+      .select('ref, tipo, descricao, valor, minha_parte, dividido_com, categoria, status, origem, data, divergencia')
       .eq('competencia', competencia).order('data', { ascending: false, nullsFirst: false }),
     // compras que chegaram do banco e ainda não foram classificadas
     supabase.from('transacoes').select('id').eq('competencia', competencia).eq('tipo', 'gasto').eq('revisado', false),
@@ -137,6 +144,7 @@ export async function buscarTransacoes(competencia: string): Promise<Lancamento[
     // dividido_com vem como "Pai 42.99, Mãe 30.26": só os nomes
     pessoas: l.dividido_com ? l.dividido_com.split(', ').map((q: string) => q.slice(0, q.lastIndexOf(' '))) : [],
     pendente: naoRevisadas.has(l.ref),
+    divergencia: l.divergencia,
   }));
 }
 
@@ -296,5 +304,39 @@ export async function lancarGasolina(data: string, valor: number, cartaoId: numb
 export async function excluirLancado(tipo: Lancado['tipo'], id: number): Promise<void> {
   const tabela = tipo === 'renda' ? 'renda' : tipo === 'debito' ? 'debitos' : 'abastecimentos';
   const { error } = await supabase.from(tabela).delete().eq('id', id);
+  if (error) throw error;
+}
+
+export type ContaFixa = {
+  id: number; nome: string; valor: number; forma: 'debito' | 'credito';
+  inicio: string; fim: string | null; textoFatura: string | null;
+};
+
+export async function buscarContasFixas(): Promise<ContaFixa[]> {
+  const { data, error } = await supabase.from('contas_fixas')
+    .select('id, nome, valor, forma, inicio, fim, texto_fatura').order('nome').order('inicio');
+  if (error) throw error;
+  return (data ?? []).map(f => ({
+    id: f.id, nome: f.nome, valor: num(f.valor), forma: f.forma, inicio: f.inicio, fim: f.fim, textoFatura: f.texto_fatura,
+  }));
+}
+
+/** Nova conta fixa (regra 3). Crédito: texto_fatura é como ela aparece na fatura, pra ser reconhecida. */
+export async function criarContaFixa(c: { nome: string; valor: number; forma: 'debito' | 'credito'; inicio: string; textoFatura: string | null }): Promise<void> {
+  const { error } = await supabase.from('contas_fixas').insert({
+    nome: c.nome.trim(), valor: c.valor, forma: c.forma, inicio: c.inicio, texto_fatura: c.forma === 'credito' ? c.textoFatura?.trim() || null : null,
+  });
+  if (error) throw error;
+}
+
+/** Encerrar: a conta conta até o mês informado (inclusive). */
+export async function encerrarContaFixa(id: number, ultimoMes: string): Promise<void> {
+  const { error } = await supabase.from('contas_fixas').update({ fim: ultimoMes }).eq('id', id);
+  if (error) throw error;
+}
+
+/** Mudou o valor: encerra a antiga e cria uma nova a partir do mês (função no banco, regra 3). */
+export async function mudarValorContaFixa(id: number, valor: number, aPartir: string): Promise<void> {
+  const { error } = await supabase.rpc('mudar_valor_conta_fixa', { p_conta: id, p_valor: valor, p_a_partir: aPartir });
   if (error) throw error;
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { BotaoOlho } from '../components/BotaoOlho';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, venceOuVenceu } from '../lib/formato';
 import {
   buscarAReceber, buscarCategorias, buscarFatura, buscarParcelamentos, buscarResumo, buscarSaidas,
-  type AReceber, type Categoria, type Fatura, type LinhaSaida, type Parcela, type ResumoMes,
+  type AReceber, type Categoria, type Fatura, type FaturaCartao, type LinhaSaida, type Parcela, type ResumoMes,
 } from '../lib/dados';
 import { Icone } from '../components/Icone';
 import { Anel } from '../components/Anel';
@@ -26,37 +27,37 @@ export function Mes() {
   const navegar = useNavigate();
   const competencia = params.get('mes') ?? mesAtual();
 
-  const [resumo, setResumo] = useState<ResumoMes | null | undefined>(undefined);
-  const [fatura, setFatura] = useState<Fatura>(null);
-  const [receber, setReceber] = useState<AReceber>({ total: 0, pessoas: 0 });
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [erro, setErro] = useState('');
   const [verFaturas, setVerFaturas] = useState(false);
-  const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [verParcelas, setVerParcelas] = useState(false);
-  const [saidas, setSaidas] = useState<LinhaSaida[]>([]);
   const [verResumo, setVerResumo] = useState(false);
   const [verCategorias, setVerCategorias] = useState(false);
 
-
-  useEffect(() => {
-    let valido = true;   // trocou de mês antes da resposta chegar: descarta a antiga
-    setResumo(undefined);
-    setErro('');
-    Promise.all([
+  // tudo da tela num pedido só, guardado em cache por mês (voltar pra aba não busca de novo)
+  const { data, error } = useQuery({
+    queryKey: ['mes', competencia],
+    queryFn: () => Promise.all([
       buscarResumo(competencia),
       buscarFatura(competencia),
       buscarAReceber(competencia),
       buscarCategorias(competencia),
       buscarParcelamentos(competencia),
       buscarSaidas(competencia),
-    ]).then(([r, f, a, c, p, s]) => { if (valido) { setResumo(r); setFatura(f); setReceber(a); setCategorias(c); setParcelas(p); setSaidas(s); } })
-      .catch(e => { if (valido) { setErro(e.message); setResumo(null); } });
+    ]),
+  });
+  const erro = error?.message ?? '';
+  const resumo: ResumoMes | null | undefined = data ? data[0] : error ? null : undefined;   // undefined = carregando
+  const fatura: Fatura = data?.[1] ?? null;
+  const receber: AReceber = data?.[2] ?? { total: 0, pessoas: 0 };
+  const categorias: Categoria[] = data?.[3] ?? [];
+  const parcelas: Parcela[] = data?.[4] ?? [];
+  const saidas: LinhaSaida[] = data?.[5] ?? [];
+
+  // trocou de mês: fecha o que estava aberto
+  useEffect(() => {
     setVerFaturas(false);
     setVerParcelas(false);
     setVerResumo(false);
     setVerCategorias(false);
-    return () => { valido = false; };
   }, [competencia]);
 
   const saldo = resumo?.saldo ?? 0;
@@ -80,11 +81,7 @@ export function Mes() {
             </div>
           </div>
         </div>
-        {/* temporário: o sino faz logout até existirem notificações */}
-        <button aria-label="Sair" title="Sair" onClick={() => supabase.auth.signOut()}
-          style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icone nome="sino" tamanho={22} cor="#E8E2D8" />
-        </button>
+        <BotaoOlho />
       </header>
 
       <SeletorMes competencia={competencia} rota="/" />
@@ -135,8 +132,8 @@ export function Mes() {
       {verFaturas && fatura && (
         <section className="vidro" style={{ padding: '6px 16px', marginTop: -2 }}>
           {fatura.porCartao.map((f, i) => (
-            <div key={f.cartao} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0',
-              borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            <div key={f.cartao} style={{ padding: '10px 0', borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>
                 <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{f.cartao}</span>
                 <span className="mutado" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
@@ -148,6 +145,8 @@ export function Mes() {
                 {f.previsto > 0 && f.total !== f.previsto &&
                   <span className="mutado" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{reais(f.previsto)} previsto</span>}
               </span>
+            </div>
+            {f.fechada && <Conferencia fatura={f} aoTocar={() => abrirGrupo(f.cartao)} />}
             </div>
           ))}
         </section>
@@ -314,4 +313,22 @@ function LinhaResumo({ nome, valor, cor, forte = false, aoTocar }: { nome: strin
   const estilo = { width: '100%', display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontWeight: forte ? 700 : 400 } as const;
   // linha tocável abre Transações já filtrada no grupo
   return aoTocar ? <button onClick={aoTocar} style={estilo}>{conteudo}</button> : <div style={estilo}>{conteudo}</div>;
+}
+
+/** Conferência (regra 10): total do banco × soma das compras recebidas. Toque abre as compras do cartão. */
+function Conferencia({ fatura: f, aoTocar }: { fatura: FaturaCartao; aoTocar: () => void }) {
+  const diferenca = f.total - f.somaCompras;
+  const confere = Math.abs(diferenca) < 0.01;
+  return (
+    <button onClick={aoTocar} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+      marginTop: 6, fontSize: 12, textAlign: 'left' }}>
+      <span className="mutado">
+        compras R$ {reais(f.somaCompras)}{f.encargos > 0 ? ` · encargos R$ ${reais(f.encargos)}` : ''}
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, color: confere ? 'var(--positivo)' : 'var(--mel)' }}>
+        {confere ? '✓ confere' : `⚠ diferença ${diferenca > 0 ? '+' : '−'}R$ ${reais(Math.abs(diferenca))}`}
+        <Icone nome="seta" tamanho={11} cor="#C9C2B7" />
+      </span>
+    </button>
+  );
 }

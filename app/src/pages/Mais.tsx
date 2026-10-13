@@ -1,17 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { dadosMudaram } from '../lib/cache';
 import { buscarPessoas, normalizarTelefone, salvarTelefone, type Pessoa } from '../lib/dados';
 import { telefoneLegivel } from '../lib/formato';
+import { supabase } from '../lib/supabase';
+import { ContasFixas } from '../components/ContasFixas';
+import { TituloAba } from '../components/BotaoOlho';
 
-/** Aba Mais: por enquanto, o telefone de cada pessoa (usado em "Cobrar no WhatsApp"). */
+/** Aba Mais: telefones (cobrança no WhatsApp), contas fixas e sair. */
 export function Mais() {
-  const [pessoas, setPessoas] = useState<Pessoa[] | null>(null);
-  const [erro, setErro] = useState('');
-
-  useEffect(() => { buscarPessoas().then(setPessoas).catch(e => setErro(e.message)); }, []);
+  const consulta = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas });
+  const pessoas: Pessoa[] | null = consulta.data ?? null;
+  const erro = consulta.error?.message ?? '';
+  const [confirmarSaida, setConfirmarSaida] = useState(false);
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h1 className="titulo">Mais</h1>
+      <TituloAba>Mais</TituloAba>
 
       <div style={{ fontSize: 15, fontWeight: 600, margin: '6px 4px 0' }}>Pessoas</div>
       {erro && <div role="alert" style={{ color: 'var(--negativo)' }}>Erro: {erro}</div>}
@@ -24,6 +29,23 @@ export function Mais() {
       <p className="mutado" style={{ fontSize: 12, lineHeight: 1.5, margin: '0 4px' }}>
         O telefone é usado no botão "Cobrar no WhatsApp" dos Acertos. Digite com DDD.
       </p>
+
+      <ContasFixas />
+
+      {/* sair pede confirmação: o login é com e-mail e senha, chato de refazer no celular */}
+      <section className="vidro" style={{ padding: '4px 16px', marginTop: 14 }}>
+        {confirmarSaida ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', fontSize: 15 }}>
+            <span style={{ flex: 1 }}>Sair do app?</span>
+            <button className="mutado" onClick={() => setConfirmarSaida(false)}>Cancelar</button>
+            <button onClick={() => supabase.auth.signOut()} style={{ color: 'var(--negativo)', fontWeight: 700 }}>Sair</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmarSaida(true)} style={{ width: '100%', textAlign: 'left', padding: '12px 0', fontSize: 15, color: 'var(--negativo)' }}>
+            Sair
+          </button>
+        )}
+      </section>
     </main>
   );
 }
@@ -44,6 +66,7 @@ function LinhaPessoa({ pessoa, primeira }: { pessoa: Pessoa; primeira: boolean }
       setSalvo(novo);
       setTexto(novo ? telefoneLegivel(novo) : '');
       setEstado('salvo');
+      dadosMudaram();   // botão do WhatsApp nos Acertos usa o telefone
     } catch (e) {
       setErro((e as Error).message);
       setEstado('');

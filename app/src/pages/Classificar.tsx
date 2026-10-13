@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { dadosMudaram } from '../lib/cache';
 import { useNavigate, useParams } from 'react-router-dom';
-import { buscarCompra, buscarOpcoes, classificar, type Compra, type Opcao } from '../lib/dados';
+import { buscarCompra, buscarOpcoes, classificar } from '../lib/dados';
 import { diaMesCurto, reais } from '../lib/formato';
 import { Icone } from '../components/Icone';
 import { Chip, DIVISAO_MINHA, Titulo, Divisao, calcularDivisao, estadoDeRateios, type EstadoDivisao } from '../components/Divisao';
@@ -9,27 +11,27 @@ import { Chip, DIVISAO_MINHA, Titulo, Divisao, calcularDivisao, estadoDeRateios,
 export function Classificar() {
   const { id = '' } = useParams();
   const navegar = useNavigate();
-  const [compra, setCompra] = useState<Compra | null>(null);
-  const [categorias, setCategorias] = useState<Opcao[]>([]);
-  const [pessoas, setPessoas] = useState<Opcao[]>([]);
+  const consulta = useQuery({ queryKey: ['compra', id], queryFn: () => buscarCompra(id) });
+  const opcoes = useQuery({ queryKey: ['opcoes'], queryFn: buscarOpcoes }).data;
+  const compra = consulta.data ?? null;
+  const categorias = opcoes?.categorias ?? [];
+  const pessoas = opcoes?.pessoas ?? [];
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
   const [divisao, setDivisao] = useState<EstadoDivisao>(DIVISAO_MINHA);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
+  // preenche o formulário com o que já está gravado, quando compra e categorias chegam
   useEffect(() => {
-    Promise.all([buscarCompra(id), buscarOpcoes()]).then(([c, o]) => {
-      setCompra(c);
-      setCategorias(o.categorias);
-      setPessoas(o.pessoas);
-      // categoria atual vale como sugestão, menos "A revisar" (não está na lista)
-      setCategoriaId(o.categorias.some(x => x.id === c.categoriaId) ? c.categoriaId : null);
-      setDivisao(estadoDeRateios(c.rateios, Math.abs(c.valor)));
-    }).catch(e => setErro(e.message));
-  }, [id]);
+    if (!compra || !opcoes) return;
+    // categoria atual vale como sugestão, menos "A revisar" (não está na lista)
+    setCategoriaId(opcoes.categorias.some(x => x.id === compra.categoriaId) ? compra.categoriaId : null);
+    setDivisao(estadoDeRateios(compra.rateios, Math.abs(compra.valor)));
+  }, [compra, opcoes]);
 
   if (!compra) {
-    return <main className="tela">{erro ? <div role="alert" style={{ color: 'var(--negativo)' }}>Erro ao carregar: {erro}</div> : <div className="mutado">Carregando…</div>}</main>;
+    const erroCarga = consulta.error?.message;
+    return <main className="tela">{erroCarga ? <div role="alert" style={{ color: 'var(--negativo)' }}>Erro ao carregar: {erroCarga}</div> : <div className="mutado">Carregando…</div>}</main>;
   }
 
   const total = Math.abs(compra.valor);
@@ -42,6 +44,7 @@ export function Classificar() {
     setErro('');
     try {
       await classificar(compra.id, categoriaId, rateios);
+      dadosMudaram();   // saldo, categorias, acertos… dependem da classificação
       navegar(-1);
     } catch (e) {
       setErro((e as Error).message);

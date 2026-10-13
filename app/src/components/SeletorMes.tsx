@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { buscarPrimeiroMes } from '../lib/dados';
 import { nomeMes, somaMes } from '../lib/formato';
@@ -7,9 +7,8 @@ import { Icone } from './Icone';
 /** ‹ [📅 Outubro 2026 ⌄] › — setas andam um mês (sem empilhar histórico); a pílula abre a tela Meses. */
 export function SeletorMes({ competencia, rota }: { competencia: string; rota: string }) {
   const navegar = useNavigate();
-  const [primeiroMes, setPrimeiroMes] = useState<string | null>(null);
-
-  useEffect(() => { buscarPrimeiroMes().then(setPrimeiroMes).catch(() => {}); }, []);   // só trava a seta; sem ele, segue livre
+  // só trava a seta; se falhar, segue livre
+  const primeiroMes = useQuery({ queryKey: ['primeiroMes'], queryFn: buscarPrimeiroMes }).data ?? null;
 
   const noInicio = primeiroMes !== null && competencia <= primeiroMes;
   const ir = (mes: string) => navegar(`${rota}?mes=${mes}`, { replace: true });
