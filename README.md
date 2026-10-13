@@ -27,7 +27,7 @@ Todos os gastos passam pelo cartão de crédito, mas parte deles é de outras pe
 ```mermaid
 flowchart LR
   B[Bancos] -- Open Finance --> P[Pluggy API]
-  P -- todo dia, 6h --> F[Edge Function<br/>sync-pluggy]
+  P -- a cada 3h --> F[Edge Function<br/>sync-pluggy]
   F --> DB[(PostgreSQL<br/>Supabase)]
   DB -- views --> API[API REST<br/>Supabase]
   API --> APP[PWA no celular]
@@ -79,7 +79,7 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 - [x] Cobrança pelo WhatsApp (link `wa.me` com a mensagem pronta)
 - [x] Conferência de faturas e aviso de divergência
 - [ ] PWA instalável e deploy
-- [ ] Sincronizar pelo app (hoje só a automática, às 6h)
+- [ ] Sincronizar pelo app (hoje só a automática, a cada 3h)
 - [ ] Pix copia e cola na cobrança
 
 ## Rodando localmente
