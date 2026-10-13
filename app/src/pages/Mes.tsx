@@ -36,6 +36,7 @@ export function Mes() {
   const [verParcelas, setVerParcelas] = useState(false);
   const [saidas, setSaidas] = useState<LinhaSaida[]>([]);
   const [verResumo, setVerResumo] = useState(false);
+  const [verCategorias, setVerCategorias] = useState(false);
 
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export function Mes() {
     setVerFaturas(false);
     setVerParcelas(false);
     setVerResumo(false);
+    setVerCategorias(false);
     return () => { valido = false; };
   }, [competencia]);
 
@@ -61,6 +63,8 @@ export function Mes() {
   const fracao = resumo && resumo.renda > 0 ? resumo.saidas / resumo.renda : 0;
   const estourou = fracao > 1;
   const abrirGrupo = (grupo: string) => navegar(`/transacoes?mes=${competencia}&grupo=${encodeURIComponent(grupo)}`);
+  const abrirCategoria = (categoria: string) => navegar(`/transacoes?mes=${competencia}&categoria=${encodeURIComponent(categoria)}`);
+  const totalCategorias = categorias.reduce((t, c) => t + c.total, 0);
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -167,15 +171,20 @@ export function Mes() {
       <section className="vidro" style={{ padding: '14px 14px 14px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 15, fontWeight: 500 }}>Categorias · sua parte</span>
-          <span style={{ fontSize: 12, color: 'var(--mel)', fontWeight: 600 }}>ver todas →</span>
+          {categorias.length > 4 && (
+            <button onClick={() => setVerCategorias(!verCategorias)} aria-expanded={verCategorias}
+              style={{ fontSize: 12, color: 'var(--mel)', fontWeight: 600, padding: '4px 0' }}>
+              {verCategorias ? 'ver menos' : `ver todas (${categorias.length})`}
+            </button>
+          )}
         </div>
         <div style={{ width: 12, height: 2, borderRadius: 1, background: 'var(--mel)', marginTop: 6 }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
           {categorias.slice(0, 4).map(c => {
             const est = ESTILO_CATEGORIA[c.categoria] ?? PADRAO;
             return (
-              <div key={c.categoria} style={{ textAlign: 'center', padding: '10px 2px 8px', borderRadius: 16,
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button key={c.categoria} onClick={() => abrirCategoria(c.categoria)} style={{ textAlign: 'center', padding: '10px 2px 8px', borderRadius: 16,
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', minWidth: 0 }}>
                 <div style={{ width: 46, height: 46, borderRadius: 23, margin: '0 auto', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', border: `1.5px solid ${est.cor}`, boxShadow: `0 0 12px ${est.cor}44`,
                   background: 'radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), rgba(0,0,0,0.25))' }}>
@@ -186,11 +195,26 @@ export function Mes() {
                 </div>
                 <div style={{ fontSize: 12, marginTop: 7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.categoria}</div>
                 <div className="mutado" style={{ fontSize: 11, marginTop: 2 }}>{reais(c.total)}</div>
-              </div>
+              </button>
             );
           })}
           {!categorias.length && <div className="mutado" style={{ gridColumn: '1 / -1', fontSize: 13 }}>Nenhum gasto neste mês.</div>}
         </div>
+        {/* todas, em lista: nome, % da sua parte e valor; toque abre Transações filtrada */}
+        {verCategorias && (
+          <div style={{ marginTop: 10 }}>
+            {categorias.map(c => (
+              <button key={c.categoria} onClick={() => abrirCategoria(c.categoria)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0',
+                  borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 14, textAlign: 'left' }}>
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.categoria}</span>
+                <span className="mutado" style={{ fontSize: 12 }}>{totalCategorias ? Math.round(c.total / totalCategorias * 100) : 0}%</span>
+                <span style={{ width: 82, textAlign: 'right', fontWeight: 600 }}>R$ {reais(c.total)}</span>
+                <Icone nome="seta" tamanho={12} cor="#C9C2B7" />
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {parcelas.length > 0 && <CartaoParcelamentos parcelas={parcelas} aberto={verParcelas} alternar={() => setVerParcelas(!verParcelas)} />}

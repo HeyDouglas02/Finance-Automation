@@ -10,6 +10,7 @@ export function Transacoes() {
   const navegar = useNavigate();
   const competencia = params.get('mes') ?? mesAtual();
   const grupoFiltro = params.get('grupo');
+  const categoriaFiltro = params.get('categoria');
   const soPendentes = params.get('filtro') === 'pendentes';
 
   const [itens, setItens] = useState<Lancamento[] | null>(null);
@@ -33,7 +34,10 @@ export function Transacoes() {
   };
 
   const pendentes = (itens ?? []).filter(i => i.pendente).length;
-  const visiveis = (itens ?? []).filter(i => (!soPendentes || i.pendente) && (!grupoFiltro || i.grupo === grupoFiltro));
+  // categoria: igual ao card do Mês (sua parte, sem renda; sem categoria = "Sem categoria")
+  const daCategoria = (i: Lancamento) => i.tipo !== 'Renda' && i.minhaParte !== 0 && (i.categoria ?? 'Sem categoria') === categoriaFiltro;
+  const visiveis = (itens ?? []).filter(i => (!soPendentes || i.pendente) && (!grupoFiltro || i.grupo === grupoFiltro)
+    && (!categoriaFiltro || daCategoria(i)));
 
   // mesma ordem do resumo do saldo: Renda primeiro, depois quem pesa mais na sua parte
   const grupos = new Map<string, Lancamento[]>();
@@ -52,6 +56,11 @@ export function Transacoes() {
         {grupoFiltro && (
           <Filtro ativo onClick={() => filtrar({ grupo: null })}>
             {grupoFiltro} <span aria-label="tirar filtro" style={{ marginLeft: 4 }}>✕</span>
+          </Filtro>
+        )}
+        {categoriaFiltro && (
+          <Filtro ativo onClick={() => filtrar({ categoria: null })}>
+            {categoriaFiltro} <span aria-label="tirar filtro" style={{ marginLeft: 4 }}>✕</span>
           </Filtro>
         )}
       </div>

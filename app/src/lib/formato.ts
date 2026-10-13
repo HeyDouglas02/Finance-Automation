@@ -48,3 +48,11 @@ export function telefoneLegivel(telefone: string): string {
   const n = telefone.slice(2);   // sem o 55
   return `(${n.slice(0, 2)}) ${n.slice(2, -4)}-${n.slice(-4)}`;
 }
+
+/** Gasolina (regra 7): mês do orçamento pelo fechamento do cartão; vence no mês seguinte a ele. */
+export function competenciaGasolina(data: string, cartao: { diaFechamento: number; diaVencimento: number; mesesAteVencer: number }) {
+  const [ano, mes, dia] = data.split('-').map(Number);
+  const competencia = somaMes(`${ano}-${String(mes).padStart(2, '0')}-01`, (dia <= cartao.diaFechamento ? 0 : 1) + cartao.mesesAteVencer - 1);
+  const vencimento = somaMes(competencia, 1).slice(0, 8) + String(cartao.diaVencimento).padStart(2, '0');
+  return { competencia, vencimento };
+}

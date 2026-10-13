@@ -242,3 +242,59 @@ export async function salvarTelefone(id: number, digitado: string): Promise<stri
   if (error) throw error;
   return telefone;
 }
+
+export type CartaoManual = { id: number; nome: string; diaFechamento: number; diaVencimento: number; mesesAteVencer: number };
+export type Lancado = { ref: string; tipo: 'renda' | 'debito' | 'gasolina'; id: number; descricao: string; valor: number; minhaParte: number };
+
+/** Fontes de renda já usadas, da mais recente pra mais antiga (viram botões no Lançar). */
+export async function buscarFontesRenda(): Promise<string[]> {
+  const { data, error } = await supabase.from('renda').select('fonte, competencia').order('competencia', { ascending: false });
+  if (error) throw error;
+  return [...new Set((data ?? []).map(r => r.fonte))];
+}
+
+/** Cartões que não vêm do banco (gasolina é anotada à mão). */
+export async function buscarCartoesManuais(): Promise<CartaoManual[]> {
+  const { data, error } = await supabase.from('cartoes')
+    .select('id, nome, dia_fechamento, dia_vencimento, meses_ate_vencer').eq('conectado', false).order('id');
+  if (error) throw error;
+  return (data ?? []).map(c => ({ id: c.id, nome: c.nome, diaFechamento: c.dia_fechamento, diaVencimento: c.dia_vencimento, mesesAteVencer: c.meses_ate_vencer }));
+}
+
+/** Renda, débitos e gasolina lançados à mão que caem no mês (débito parcelado aparece pela parcela do mês). */
+export async function buscarLancados(competencia: string): Promise<Lancado[]> {
+  const { data, error } = await supabase.from('v_lancamentos')
+    .select('ref, descricao, valor, minha_parte').eq('competencia', competencia)
+    .in('tipo', ['Renda', 'Débito', 'Gasolina']);
+  if (error) throw error;
+  return (data ?? []).map(l => {
+    const [prefixo, id] = l.ref.split(':');   // "renda:12", "deb:7:0", "gas:3"
+    const tipo = prefixo === 'renda' ? 'renda' : prefixo === 'deb' ? 'debito' : 'gasolina';
+    return { ref: l.ref, tipo, id: Number(id), descricao: l.descricao, valor: num(l.valor), minhaParte: num(l.minha_parte) } as Lancado;
+  });
+}
+
+export async function lancarRenda(competencia: string, fonte: string, valor: number): Promise<void> {
+  const { error } = await supabase.from('renda').insert({ competencia, fonte: fonte.trim(), valor });
+  if (error) throw error;
+}
+
+/** Débito + divisão (função lancar_debito no banco, regra 6). valor = de cada parcela. */
+export async function lancarDebito(competencia: string, descricao: string, valor: number, parcelas: number, categoriaId: number, rateios: Rateio[]): Promise<void> {
+  const { error } = await supabase.rpc('lancar_debito', {
+    p_competencia: competencia, p_descricao: descricao, p_valor: valor, p_parcelas: parcelas, p_categoria: categoriaId, p_rateios: rateios,
+  });
+  if (error) throw error;
+}
+
+export async function lancarGasolina(data: string, valor: number, cartaoId: number): Promise<void> {
+  const { error } = await supabase.from('abastecimentos').insert({ data, valor, cartao_id: cartaoId });
+  if (error) throw error;
+}
+
+/** Exclui o lançamento inteiro (débito parcelado: todas as parcelas; a divisão vai junto). */
+export async function excluirLancado(tipo: Lancado['tipo'], id: number): Promise<void> {
+  const tabela = tipo === 'renda' ? 'renda' : tipo === 'debito' ? 'debitos' : 'abastecimentos';
+  const { error } = await supabase.from(tabela).delete().eq('id', id);
+  if (error) throw error;
+}

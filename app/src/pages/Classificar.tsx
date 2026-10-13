@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { buscarCompra, buscarOpcoes, classificar, type Compra, type Opcao, type Rateio } from '../lib/dados';
+import { buscarCompra, buscarOpcoes, classificar, type Compra, type Opcao } from '../lib/dados';
 import { diaMesCurto, reais } from '../lib/formato';
 import { Icone } from '../components/Icone';
-
-/** Dono: minha (sem rateio), inteira de uma pessoa, ou dividida. */
-type Dono = { tipo: 'minha' } | { tipo: 'pessoa'; id: number } | { tipo: 'dividir' };
-/** Linha da divisão: texto do campo + se é R$ ou %. */
-type Parte = { texto: string; unidade: 'valor' | 'percentual' };
+import { Chip, DIVISAO_MINHA, Titulo, Divisao, calcularDivisao, estadoDeRateios, type EstadoDivisao } from '../components/Divisao';
 
 /** Tela satélite: classificar uma compra (regra 11). Parcela: vale para ela e as seguintes. */
 export function Classificar() {
@@ -17,8 +13,7 @@ export function Classificar() {
   const [categorias, setCategorias] = useState<Opcao[]>([]);
   const [pessoas, setPessoas] = useState<Opcao[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
-  const [dono, setDono] = useState<Dono>({ tipo: 'minha' });
-  const [partes, setPartes] = useState<Record<number, Parte>>({});
+  const [divisao, setDivisao] = useState<EstadoDivisao>(DIVISAO_MINHA);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -29,13 +24,7 @@ export function Classificar() {
       setPessoas(o.pessoas);
       // categoria atual vale como sugestão, menos "A revisar" (não está na lista)
       setCategoriaId(o.categorias.some(x => x.id === c.categoriaId) ? c.categoriaId : null);
-      // monta o dono a partir dos rateios que já existem
-      // inteira de uma pessoa: 100% ou valor fixo igual ao da compra (como veio da importação)
-      const r0 = c.rateios[0];
-      const inteira = c.rateios.length === 1 && (r0.percentual === 100 || Math.abs((r0.valor ?? 0) - Math.abs(c.valor)) < 0.005);
-      setDono(!c.rateios.length ? { tipo: 'minha' } : inteira ? { tipo: 'pessoa', id: c.rateios[0].pessoa_id } : { tipo: 'dividir' });
-      setPartes(Object.fromEntries(c.rateios.map(r => [r.pessoa_id,
-        r.percentual !== null ? { texto: String(r.percentual), unidade: 'percentual' } : { texto: String(r.valor), unidade: 'valor' }])));
+      setDivisao(estadoDeRateios(c.rateios, Math.abs(c.valor)));
     }).catch(e => setErro(e.message));
   }, [id]);
 
@@ -44,19 +33,8 @@ export function Classificar() {
   }
 
   const total = Math.abs(compra.valor);
-  // "12,5" ou "12.5" → 12.5; vazio ou inválido → 0
-  const numero = (texto: string) => Number(texto.replace(',', '.')) || 0;
-  const rateios: Rateio[] = dono.tipo === 'minha' ? []
-    : dono.tipo === 'pessoa' ? [{ pessoa_id: dono.id, valor: null, percentual: 100 }]
-    : Object.entries(partes).filter(([, p]) => numero(p.texto) > 0).map(([pid, p]) => ({
-        pessoa_id: Number(pid),
-        valor: p.unidade === 'valor' ? numero(p.texto) : null,
-        percentual: p.unidade === 'percentual' ? numero(p.texto) : null,
-      }));
-  const dosOutros = rateios.reduce((t, r) => t + (r.valor ?? total * (r.percentual ?? 0) / 100), 0);
-  const minhaParte = total - dosOutros;
-  const passou = minhaParte < -0.005;
-  const podeConfirmar = categoriaId !== null && !passou && !salvando && !(dono.tipo === 'dividir' && !rateios.length);
+  const { rateios, passou, incompleta } = calcularDivisao(divisao, total);
+  const podeConfirmar = categoriaId !== null && !passou && !incompleta && !salvando;
 
   const confirmar = async () => {
     if (categoriaId === null) return;
@@ -94,39 +72,7 @@ export function Classificar() {
       </section>
 
       <Titulo>De quem é?</Titulo>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        <Chip ativo={dono.tipo === 'minha'} onClick={() => setDono({ tipo: 'minha' })}>Minha</Chip>
-        {pessoas.map(p => (
-          <Chip key={p.id} ativo={dono.tipo === 'pessoa' && dono.id === p.id} onClick={() => setDono({ tipo: 'pessoa', id: p.id })}>{p.nome}</Chip>
-        ))}
-        <Chip ativo={dono.tipo === 'dividir'} onClick={() => setDono({ tipo: 'dividir' })}>Dividir</Chip>
-      </div>
-
-      {dono.tipo === 'dividir' && (
-        <section className="vidro" style={{ padding: '6px 16px' }}>
-          {pessoas.map((p, i) => {
-            const parte = partes[p.id] ?? { texto: '', unidade: 'valor' as const };
-            const mudar = (m: Partial<Parte>) => setPartes({ ...partes, [p.id]: { ...parte, ...m } });
-            return (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
-                borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                <label htmlFor={`parte-${p.id}`} style={{ flex: 1, fontSize: 15 }}>{p.nome}</label>
-                <input id={`parte-${p.id}`} inputMode="decimal" placeholder="0" value={parte.texto} onChange={e => mudar({ texto: e.target.value })}
-                  className="pilula" style={{ width: 96, height: 40, padding: '0 12px', textAlign: 'right', fontSize: 15 }} />
-                <button className="pilula" aria-label={`${p.nome}: trocar entre reais e porcentagem`}
-                  onClick={() => mudar({ unidade: parte.unidade === 'valor' ? 'percentual' : 'valor' })}
-                  style={{ width: 48, height: 40, fontSize: 14, fontWeight: 600 }}>
-                  {parte.unidade === 'valor' ? 'R$' : '%'}
-                </button>
-              </div>
-            );
-          })}
-        </section>
-      )}
-
-      <div style={{ fontSize: 14, padding: '0 4px', color: passou ? 'var(--negativo)' : 'var(--texto-2)' }}>
-        {passou ? `A divisão passa do valor da compra em R$ ${reais(-minhaParte)}` : <>Sua parte: <b style={{ color: 'var(--texto)' }}>R$ {reais(minhaParte)}</b></>}
-      </div>
+      <Divisao pessoas={pessoas} estado={divisao} mudar={setDivisao} total={total} />
 
       <Titulo>Categoria</Titulo>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -145,19 +91,5 @@ export function Classificar() {
         {salvando ? 'Salvando…' : 'Confirmar'}
       </button>
     </main>
-  );
-}
-
-function Titulo({ children }: { children: string }) {
-  return <div style={{ fontSize: 15, fontWeight: 600, margin: '6px 4px 0' }}>{children}</div>;
-}
-
-function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: string }) {
-  return (
-    <button onClick={onClick} aria-pressed={ativo} className={ativo ? undefined : 'pilula'}
-      style={{ height: 40, padding: '0 16px', borderRadius: 999, fontSize: 14,
-        ...(ativo ? { border: '1.5px solid var(--mel)', background: 'rgba(242,184,75,0.14)', color: 'var(--mel)', fontWeight: 600 } : {}) }}>
-      {children}
-    </button>
   );
 }
