@@ -9,6 +9,7 @@ const CAMINHOS = {
   olhoFechado: 'M3 3l18 18 M10.6 5.1A10.4 10.4 0 0112 5c6.4 0 10 7 10 7a17 17 0 01-3.2 4.1 M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.7 9.7 0 005.4-1.6 M9.9 9.9a3 3 0 004.2 4.2',
   calendario: 'M4 5h16v15H4z M8 3v4 M16 3v4 M4 10h16',
   seta: 'M9 6l6 6-6 6',
+  atualizar: 'M20 11a8 8 0 10-2.3 5.7 M20 4v7h-7',
   baixo: 'M6 9l6 6 6-6',
 } as const;
 

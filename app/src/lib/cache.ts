@@ -1,12 +1,15 @@
 import { QueryClient } from '@tanstack/react-query';
 
 /**
- * Cache das consultas. Os dados só mudam quando a sincronização roda (06:00)
- * ou quando o app grava algo, então nada "envelhece" sozinho: cada aba busca
- * uma vez e depois mostra na hora. Recarregar o app (ou sincronizar) busca de novo.
+ * Cache das consultas. Os dados só mudam com a sincronização (a cada 3h) ou
+ * quando o app grava algo, então cada tela mostra na hora o que já buscou.
+ * Recarrega sozinho ao voltar pro app depois de 1h; antes disso, puxar a tela
+ * pra baixo recarrega (components/PuxarParaAtualizar.tsx).
  */
+const UMA_HORA = 60 * 60 * 1000;
+
 export const cliente = new QueryClient({
-  defaultOptions: { queries: { staleTime: Infinity, refetchOnWindowFocus: false, retry: 1 } },
+  defaultOptions: { queries: { staleTime: UMA_HORA, refetchOnWindowFocus: true, retry: 1 } },
 });
 
 /** Depois de gravar: tudo vem das views (saldo, acertos, categorias…), então marca tudo pra atualizar. */

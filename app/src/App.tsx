@@ -4,6 +4,7 @@ import { useSessao } from './hooks/useSessao';
 import { OcultoContexto, gravarOculto, lerOculto } from './hooks/useOculto';
 import { definirOculto } from './lib/formato';
 import { Ilha } from './components/Ilha';
+import { PuxarParaAtualizar } from './components/PuxarParaAtualizar';
 import { Login } from './pages/Login';
 import { Mes } from './pages/Mes';
 import { Meses } from './pages/Meses';
@@ -37,6 +38,7 @@ export function App() {
         <Route path="/mais" element={<Mais />} />
       </Routes>
       <Ilha />
+      <PuxarParaAtualizar />
     </BrowserRouter>
     </OcultoContexto.Provider>
   );

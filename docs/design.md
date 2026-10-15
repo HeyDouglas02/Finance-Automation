@@ -14,7 +14,7 @@ Tema escuro: fundo grafite quente com brilhos suaves, cartões em vidro e destaq
 
 Componentes: cartão de vidro (`.vidro`), pílula (`.pilula`), botão dourado (`.botao-mel`).
 
-No topo da tela Mês, o **olho** esconde todos os valores (preferência salva no aparelho).
+No topo de cada aba, o **olho** esconde todos os valores (preferência salva no aparelho). **Puxar a tela pra baixo** recarrega os dados; ao voltar pro app depois de 1h, recarrega sozinho.
 
 Abas (ilha flutuante), cada uma responde uma pergunta:
 
