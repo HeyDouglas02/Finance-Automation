@@ -57,6 +57,7 @@ erDiagram
 |---|---|
 | `classificar(transacao, categoria, rateios)` | Grava categoria + divisão de uma compra e das parcelas seguintes, numa transação só (regra 11) |
 | `lancar_debito(competencia, descricao, valor, parcelas, categoria, rateios)` | Cria um débito com a divisão, numa transação só (regra 6) |
+| `editar_debito(debito, competencia, descricao, valor, parcelas, categoria, rateios)` | Corrige um débito com a divisão, numa transação só (vale pra todas as parcelas) |
 | `mudar_valor_conta_fixa(conta, valor, a_partir)` | Encerra a conta fixa antiga e cria a nova com o valor novo (regra 3) |
 
 ## Views

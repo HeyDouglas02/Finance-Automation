@@ -12,6 +12,7 @@ import { Classificar } from './pages/Classificar';
 import { Acertos } from './pages/Acertos';
 import { Mais } from './pages/Mais';
 import { Lancar } from './pages/Lancar';
+import { EditarLancamento } from './pages/EditarLancamento';
 
 export function App() {
   const sessao = useSessao();
@@ -31,6 +32,7 @@ export function App() {
         <Route path="/transacoes" element={<Transacoes />} />
         <Route path="/classificar/:id" element={<Classificar />} />
         <Route path="/lancar" element={<Lancar />} />
+        <Route path="/lancamento/:tipo/:id" element={<EditarLancamento />} />
         <Route path="/acertos" element={<Acertos />} />
         <Route path="/mais" element={<Mais />} />
       </Routes>

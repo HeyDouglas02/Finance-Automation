@@ -74,8 +74,7 @@ export function Transacoes() {
           </div>
           {lista.map(i => (
             <LinhaTransacao key={i.ref} item={i}
-              // só compras reais do cartão são classificáveis; o resto é previsão ou lançamento manual
-              aoTocar={i.ref.startsWith('tx:') ? () => navegar(`/classificar/${i.ref.slice(3)}`) : undefined} />
+              aoTocar={destino(i.ref) ? () => navegar(destino(i.ref)!) : undefined} />
           ))}
         </section>
       ))}
@@ -131,4 +130,14 @@ function LinhaTransacao({ item: i, aoTocar }: { item: Lancamento; aoTocar?: () =
 function divergenciaLegivel(texto: string): string {
   const m = texto.match(/^(.*) ([\d.,]+)$/);
   return m ? `${m[1]} R$ ${reais(Number(m[2].replace(/,/g, '')))}` : texto;
+}
+
+/** Pra onde o toque leva: compra do cartão → classificar; renda, débito, gasolina → corrigir; previsão → nada. */
+function destino(ref: string): string | null {
+  const [prefixo, id] = ref.split(':');   // "tx:abc", "renda:12", "deb:7:0", "gas:3", "prev:…", "fixa:…"
+  if (prefixo === 'tx') return `/classificar/${id}`;
+  if (prefixo === 'renda') return `/lancamento/renda/${id}`;
+  if (prefixo === 'deb') return `/lancamento/debito/${id}`;
+  if (prefixo === 'gas') return `/lancamento/gasolina/${id}`;
+  return null;
 }

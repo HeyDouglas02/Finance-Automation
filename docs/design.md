@@ -22,7 +22,7 @@ Abas (ilha flutuante), cada uma responde uma pergunta:
 |---|---|
 | **Mês** | Quanto sobra? Saldo (abre o resumo renda − cada cartão − fixas − débitos − gasolina), fatura por cartão, a receber, ritmo, categorias e parcelamentos |
 | **Transações** | Pra onde foi? Tudo do mês agrupado como no resumo do saldo, com filtro **Pendentes**: compras novas a classificar (de quem é, categoria) |
-| **Lançar** | Registrar renda, débito ou gasolina (pagamento recebido é o "Recebi" dos Acertos), com a lista do que já foi lançado no mês |
+| **Lançar** | Registrar renda, débito ou gasolina (pagamento recebido é o "Recebi" dos Acertos), com a lista do que já foi lançado no mês. Tocar num lançamento (aqui ou em Transações) abre **Corrigir**: mesmo formulário, preenchido, com Salvar e Excluir |
 | **Acertos** | Quem me deve e quanto |
 | **Mais** | Status dos bancos (quando o Meu Pluggy atualizou e quando o app leu), telefones das pessoas, contas fixas (criar, mudar valor, encerrar), sair |
 

@@ -357,3 +357,48 @@ export async function buscarConexoes(): Promise<Conexao[]> {
     ultimaAtualizacao: c.ultima_atualizacao, sincronizadoEm: c.sincronizado_em,
   }));
 }
+
+/** Um lançamento manual pra editar, com os dados que o formulário precisa. */
+export type Editavel =
+  | { tipo: 'renda'; id: number; competencia: string; fonte: string; valor: number }
+  | { tipo: 'debito'; id: number; competencia: string; descricao: string; valor: number; parcelas: number; categoriaId: number | null; rateios: Rateio[] }
+  | { tipo: 'gasolina'; id: number; data: string; valor: number; cartaoId: number };
+
+export async function buscarEditavel(tipo: Lancado['tipo'], id: number): Promise<Editavel> {
+  if (tipo === 'renda') {
+    const { data, error } = await supabase.from('renda').select('competencia, fonte, valor').eq('id', id).single();
+    if (error) throw error;
+    return { tipo, id, competencia: data.competencia, fonte: data.fonte, valor: num(data.valor) };
+  }
+  if (tipo === 'debito') {
+    const { data, error } = await supabase.from('debitos')
+      .select('competencia_inicio, descricao, valor, parcelas, categoria_id, rateios(pessoa_id, valor, percentual)').eq('id', id).single();
+    if (error) throw error;
+    return {
+      tipo, id, competencia: data.competencia_inicio, descricao: data.descricao, valor: num(data.valor), parcelas: data.parcelas,
+      categoriaId: data.categoria_id,
+      rateios: (data.rateios ?? []).map(r => ({ pessoa_id: r.pessoa_id, valor: r.valor === null ? null : num(r.valor), percentual: r.percentual === null ? null : num(r.percentual) })),
+    };
+  }
+  const { data, error } = await supabase.from('abastecimentos').select('data, valor, cartao_id').eq('id', id).single();
+  if (error) throw error;
+  return { tipo, id, data: data.data, valor: num(data.valor), cartaoId: data.cartao_id };
+}
+
+export async function atualizarRenda(id: number, competencia: string, fonte: string, valor: number): Promise<void> {
+  const { error } = await supabase.from('renda').update({ competencia, fonte: fonte.trim(), valor }).eq('id', id);
+  if (error) throw error;
+}
+
+/** Débito + divisão (função editar_debito no banco). Parcelado: vale pra todas as parcelas. */
+export async function atualizarDebito(id: number, competencia: string, descricao: string, valor: number, parcelas: number, categoriaId: number, rateios: Rateio[]): Promise<void> {
+  const { error } = await supabase.rpc('editar_debito', {
+    p_debito: id, p_competencia: competencia, p_descricao: descricao, p_valor: valor, p_parcelas: parcelas, p_categoria: categoriaId, p_rateios: rateios,
+  });
+  if (error) throw error;
+}
+
+export async function atualizarGasolina(id: number, data: string, valor: number, cartaoId: number): Promise<void> {
+  const { error } = await supabase.from('abastecimentos').update({ data, valor, cartao_id: cartaoId }).eq('id', id);
+  if (error) throw error;
+}
