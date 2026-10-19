@@ -168,7 +168,7 @@ export function Mes() {
 
       <section className="vidro" style={{ padding: '14px 14px 14px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Categorias · % da renda</span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}>Categorias · quanto ainda pode</span>
           {categorias.length > 4 && (
             <button onClick={() => setVerCategorias(!verCategorias)} aria-expanded={verCategorias}
               style={{ fontSize: 12, color: 'var(--mel)', fontWeight: 600, padding: '4px 0' }}>
@@ -336,26 +336,30 @@ function Conferencia({ fatura: f, aoTocar }: { fatura: FaturaCartao; aoTocar: ()
 }
 
 /**
- * Regra 12: quanto da renda a categoria usou e, se tiver limite, quanto do limite.
- * Âmbar a partir de 80% do limite, vermelho quando passa. Sem renda no mês: nada.
+ * Regra 12: com limite, mostra quanto ainda dá pra gastar no mês (limite em % × renda − gasto);
+ * sem limite, a % da renda. Âmbar a partir de 80% do limite, vermelho quando passa. Sem renda: nada.
  */
 function UsoCategoria({ categoria: c, renda, compacto = false }: { categoria: Categoria; renda: number; compacto?: boolean }) {
   if (renda <= 0) return null;
-  const pct = c.total / renda * 100;
-  const uso = c.limite ? pct / c.limite : null;   // 1 = bateu o limite
-  const cor = uso === null ? 'var(--texto-2)' : uso > 1 ? 'var(--negativo)' : uso >= 0.8 ? 'var(--mel)' : 'var(--positivo)';
-  const texto = c.limite ? `${Math.round(pct)}% de ${Math.round(c.limite)}%` : `${Math.round(pct)}% da renda`;
+  if (!c.limite) {
+    return <span className="mutado" style={{ display: 'block', fontSize: 11, marginTop: compacto ? 4 : 3 }}>{Math.round(c.total / renda * 100)}% da renda</span>;
+  }
+  const teto = renda * c.limite / 100;
+  const resta = teto - c.total;
+  const uso = c.total / teto;   // 1 = bateu o limite
+  const cor = uso > 1 ? 'var(--negativo)' : uso >= 0.8 ? 'var(--mel)' : 'var(--positivo)';
+  const texto = resta < 0
+    ? (compacto ? `passou ${reais(-resta)}` : `passou R$ ${reais(-resta)} do limite de R$ ${reais(teto)}`)
+    : (compacto ? `resta ${reais(resta)}` : `ainda pode R$ ${reais(resta)} de R$ ${reais(teto)}`);
   return (
     <span style={{ display: 'block', marginTop: compacto ? 4 : 3 }}>
-      <span style={{ display: 'block', fontSize: 11, fontWeight: uso !== null && uso > 1 ? 700 : 400, color: cor }}>
-        {compacto && c.limite ? `${Math.round(pct)}/${Math.round(c.limite)}%` : compacto ? `${Math.round(pct)}%` : texto}
+      <span style={{ display: 'block', fontSize: 11, fontWeight: resta < 0 ? 700 : 500, color: cor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {texto}
       </span>
-      {uso !== null && (
-        <span aria-hidden="true" style={{ display: 'block', height: 3, borderRadius: 2, marginTop: 3, background: 'rgba(255,255,255,0.08)',
-          width: compacto ? '70%' : '100%', marginInline: compacto ? 'auto' : 0, overflow: 'hidden' }}>
-          <span style={{ display: 'block', height: '100%', width: `${Math.min(100, uso * 100)}%`, background: cor, borderRadius: 2 }} />
-        </span>
-      )}
+      <span aria-hidden="true" style={{ display: 'block', height: 3, borderRadius: 2, marginTop: 3, background: 'rgba(255,255,255,0.08)',
+        width: compacto ? '70%' : '100%', marginInline: compacto ? 'auto' : 0, overflow: 'hidden' }}>
+        <span style={{ display: 'block', height: '100%', width: `${Math.min(100, uso * 100)}%`, background: cor, borderRadius: 2 }} />
+      </span>
     </span>
   );
 }

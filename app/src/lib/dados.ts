@@ -121,7 +121,14 @@ export async function buscarCategorias(competencia: string): Promise<Categoria[]
   if (gastos.error) throw gastos.error;
   if (cadastro.error) throw cadastro.error;
   const limiteDe = new Map((cadastro.data ?? []).map(c => [c.nome, c.limite_percentual === null ? null : num(c.limite_percentual)]));
-  return (gastos.data ?? []).map(c => ({ categoria: c.categoria, total: num(c.total), limite: limiteDe.get(c.categoria) ?? null }));
+  const comGasto = (gastos.data ?? []).map(c => ({ categoria: c.categoria, total: num(c.total), limite: limiteDe.get(c.categoria) ?? null }));
+  // categoria com limite aparece mesmo sem gasto ainda: é aí que "resta R$ 200" mais ajuda
+  const semGasto = [...limiteDe].filter(([nome, limite]) => limite !== null && !comGasto.some(c => c.categoria === nome))
+    .map(([nome, limite]) => ({ categoria: nome, total: 0, limite }));
+  // com limite primeiro (maior meta na frente), depois as sem limite por valor gasto
+  return [...comGasto, ...semGasto].sort((a, b) =>
+    a.limite !== null && b.limite !== null ? b.limite - a.limite
+      : a.limite !== null ? -1 : b.limite !== null ? 1 : b.total - a.total);
 }
 
 export type LimiteCategoria = { id: number; nome: string; limite: number | null };
