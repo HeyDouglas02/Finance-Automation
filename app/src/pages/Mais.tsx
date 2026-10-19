@@ -6,9 +6,10 @@ import { telefoneLegivel } from '../lib/formato';
 import { supabase } from '../lib/supabase';
 import { ContasFixas } from '../components/ContasFixas';
 import { Conexoes } from '../components/Conexoes';
+import { LimitesCategorias } from '../components/LimitesCategorias';
 import { TituloAba } from '../components/BotaoOlho';
 
-/** Aba Mais: status dos bancos, telefones (cobrança no WhatsApp), contas fixas e sair. */
+/** Aba Mais: status dos bancos, telefones (cobrança no WhatsApp), contas fixas, limites por categoria e sair. */
 export function Mais() {
   const consulta = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas });
   const pessoas: Pessoa[] | null = consulta.data ?? null;
@@ -34,6 +35,8 @@ export function Mais() {
       </p>
 
       <ContasFixas />
+
+      <LimitesCategorias />
 
       {/* sair pede confirmação: o login é com e-mail e senha, chato de refazer no celular */}
       <section className="vidro" style={{ padding: '4px 16px', marginTop: 14 }}>

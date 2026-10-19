@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 /** Consultas usadas pela tela Mês. Cada uma lê uma view do banco (RLS: só o dono). */
 
 export type ResumoMes = { competencia: string; renda: number; saidas: number; saldo: number };
-export type Categoria = { categoria: string; total: number };
+export type Categoria = { categoria: string; total: number; limite: number | null };   // limite em % da renda (regra 12)
 export type FaturaCartao = {
   cartao: string; total: number; previsto: number; vencimento: string; fechada: boolean;
   somaCompras: number; encargos: number;   // conferência (regra 10), só em fatura fechada
@@ -114,10 +114,29 @@ export async function buscarSaidas(competencia: string): Promise<LinhaSaida[]> {
 }
 
 export async function buscarCategorias(competencia: string): Promise<Categoria[]> {
-  const { data, error } = await supabase.from('v_categorias_mes')
-    .select('categoria, total').eq('competencia', competencia).order('total', { ascending: false });
+  const [gastos, cadastro] = await Promise.all([
+    supabase.from('v_categorias_mes').select('categoria, total').eq('competencia', competencia).order('total', { ascending: false }),
+    supabase.from('categorias').select('nome, limite_percentual'),
+  ]);
+  if (gastos.error) throw gastos.error;
+  if (cadastro.error) throw cadastro.error;
+  const limiteDe = new Map((cadastro.data ?? []).map(c => [c.nome, c.limite_percentual === null ? null : num(c.limite_percentual)]));
+  return (gastos.data ?? []).map(c => ({ categoria: c.categoria, total: num(c.total), limite: limiteDe.get(c.categoria) ?? null }));
+}
+
+export type LimiteCategoria = { id: number; nome: string; limite: number | null };
+
+/** Categorias com o limite em % da renda (sem "A revisar", que não é categoria de verdade). */
+export async function buscarLimites(): Promise<LimiteCategoria[]> {
+  const { data, error } = await supabase.from('categorias').select('id, nome, limite_percentual').neq('nome', 'A revisar').order('nome');
   if (error) throw error;
-  return (data ?? []).map(c => ({ categoria: c.categoria, total: num(c.total) }));
+  return (data ?? []).map(c => ({ id: c.id, nome: c.nome, limite: c.limite_percentual === null ? null : num(c.limite_percentual) }));
+}
+
+/** null = sem limite. */
+export async function salvarLimite(id: number, limite: number | null): Promise<void> {
+  const { error } = await supabase.from('categorias').update({ limite_percentual: limite }).eq('id', id);
+  if (error) throw error;
 }
 
 export type Lancamento = {

@@ -65,7 +65,6 @@ export function Mes() {
   const estourou = fracao > 1;
   const abrirGrupo = (grupo: string) => navegar(`/transacoes?mes=${competencia}&grupo=${encodeURIComponent(grupo)}`);
   const abrirCategoria = (categoria: string) => navegar(`/transacoes?mes=${competencia}&categoria=${encodeURIComponent(categoria)}`);
-  const totalCategorias = categorias.reduce((t, c) => t + c.total, 0);
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -169,7 +168,7 @@ export function Mes() {
 
       <section className="vidro" style={{ padding: '14px 14px 14px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Categorias · sua parte</span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}>Categorias · % da renda</span>
           {categorias.length > 4 && (
             <button onClick={() => setVerCategorias(!verCategorias)} aria-expanded={verCategorias}
               style={{ fontSize: 12, color: 'var(--mel)', fontWeight: 600, padding: '4px 0' }}>
@@ -194,20 +193,23 @@ export function Mes() {
                 </div>
                 <div style={{ fontSize: 12, marginTop: 7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.categoria}</div>
                 <div className="mutado" style={{ fontSize: 11, marginTop: 2 }}>{reais(c.total)}</div>
+                <UsoCategoria categoria={c} renda={resumo?.renda ?? 0} compacto />
               </button>
             );
           })}
           {!categorias.length && <div className="mutado" style={{ gridColumn: '1 / -1', fontSize: 13 }}>Nenhum gasto neste mês.</div>}
         </div>
-        {/* todas, em lista: nome, % da sua parte e valor; toque abre Transações filtrada */}
+        {/* todas, em lista: nome, % da renda (e do limite) e valor; toque abre Transações filtrada */}
         {verCategorias && (
           <div style={{ marginTop: 10 }}>
             {categorias.map(c => (
               <button key={c.categoria} onClick={() => abrirCategoria(c.categoria)}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0',
                   borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 14, textAlign: 'left' }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.categoria}</span>
-                <span className="mutado" style={{ fontSize: 12 }}>{totalCategorias ? Math.round(c.total / totalCategorias * 100) : 0}%</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.categoria}</span>
+                  <UsoCategoria categoria={c} renda={resumo?.renda ?? 0} />
+                </span>
                 <span style={{ width: 82, textAlign: 'right', fontWeight: 600 }}>R$ {reais(c.total)}</span>
                 <Icone nome="seta" tamanho={12} cor="#C9C2B7" />
               </button>
@@ -330,5 +332,30 @@ function Conferencia({ fatura: f, aoTocar }: { fatura: FaturaCartao; aoTocar: ()
         <Icone nome="seta" tamanho={11} cor="#C9C2B7" />
       </span>
     </button>
+  );
+}
+
+/**
+ * Regra 12: quanto da renda a categoria usou e, se tiver limite, quanto do limite.
+ * Âmbar a partir de 80% do limite, vermelho quando passa. Sem renda no mês: nada.
+ */
+function UsoCategoria({ categoria: c, renda, compacto = false }: { categoria: Categoria; renda: number; compacto?: boolean }) {
+  if (renda <= 0) return null;
+  const pct = c.total / renda * 100;
+  const uso = c.limite ? pct / c.limite : null;   // 1 = bateu o limite
+  const cor = uso === null ? 'var(--texto-2)' : uso > 1 ? 'var(--negativo)' : uso >= 0.8 ? 'var(--mel)' : 'var(--positivo)';
+  const texto = c.limite ? `${Math.round(pct)}% de ${Math.round(c.limite)}%` : `${Math.round(pct)}% da renda`;
+  return (
+    <span style={{ display: 'block', marginTop: compacto ? 4 : 3 }}>
+      <span style={{ display: 'block', fontSize: 11, fontWeight: uso !== null && uso > 1 ? 700 : 400, color: cor }}>
+        {compacto && c.limite ? `${Math.round(pct)}/${Math.round(c.limite)}%` : compacto ? `${Math.round(pct)}%` : texto}
+      </span>
+      {uso !== null && (
+        <span aria-hidden="true" style={{ display: 'block', height: 3, borderRadius: 2, marginTop: 3, background: 'rgba(255,255,255,0.08)',
+          width: compacto ? '70%' : '100%', marginInline: compacto ? 'auto' : 0, overflow: 'hidden' }}>
+          <span style={{ display: 'block', height: '100%', width: `${Math.min(100, uso * 100)}%`, background: cor, borderRadius: 2 }} />
+        </span>
+      )}
+    </span>
   );
 }

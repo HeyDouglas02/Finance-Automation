@@ -26,7 +26,7 @@ erDiagram
 | Tabela | Para quê |
 |---|---|
 | `pessoas` | Quem divide gastos (o dono do app é implícito), com telefone pra cobrança no WhatsApp |
-| `categorias` | Categorias de gasto |
+| `categorias` | Categorias de gasto, com limite opcional em % da renda (regra 12) |
 | `cartoes` | Cartões conectados ou não, com regras de fechamento e vencimento |
 | `regras_categoria` | Texto da descrição → categoria (e divisão padrão opcional) |
 | `contas_fixas` | Contas recorrentes com vigência |

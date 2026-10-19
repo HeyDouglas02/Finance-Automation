@@ -75,3 +75,11 @@ O orçamento de um mês é pago com a renda que cai no mês seguinte, como um sa
 - A soma das partes dos outros não pode passar do valor da compra; o resto é do dono.
 - **Parcelas:** a classificação vale para a parcela escolhida **e as seguintes** da mesma compra, mesmo as já revisadas. As anteriores não mudam. As previstas acompanham sozinhas (herdam da última real).
 - Qualquer compra pode ser reclassificada depois, com a mesma regra.
+
+## 12. Limites por categoria
+
+- Cada categoria mostra quanto da **renda do mês** ela consumiu (sua parte ÷ renda), não do total gasto.
+- Cada categoria pode ter um **limite em % da renda**. Como a renda muda todo mês, o limite em reais muda junto.
+- Situação: dentro do limite; **perto** a partir de 80% do limite; **passou** acima de 100%.
+- Mês sem renda lançada: mostra só o valor, sem % nem limite.
+- A soma dos limites deveria caber em 100% da renda; se passar, o app avisa (o orçamento não fecha).
