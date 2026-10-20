@@ -24,7 +24,7 @@ export function Classificar() {
   // preenche o formulário com o que já está gravado, quando compra e categorias chegam
   useEffect(() => {
     if (!compra || !opcoes) return;
-    // categoria atual vale como sugestão, menos "A revisar" (não está na lista)
+    // categoria atual vale como sugestão (pendente vem sem categoria: nada marcado)
     setCategoriaId(opcoes.categorias.some(x => x.id === compra.categoriaId) ? compra.categoriaId : null);
     setDivisao(estadoDeRateios(compra.rateios, Math.abs(compra.valor)));
   }, [compra, opcoes]);

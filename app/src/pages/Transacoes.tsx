@@ -27,8 +27,10 @@ export function Transacoes() {
   };
 
   const pendentes = (itens ?? []).filter(i => i.pendente).length;
-  // categoria: igual ao card do Mês (sua parte, sem renda; sem categoria = "Sem categoria")
-  const daCategoria = (i: Lancamento) => i.tipo !== 'Renda' && i.minhaParte !== 0 && (i.categoria ?? 'Sem categoria') === categoriaFiltro;
+  // grupo do orçamento, igual ao card do Mês (sua parte, sem renda; pendente = "Sem categoria")
+  const grupoDo = (i: Lancamento) => i.grupoOrcamento ?? 'Sem categoria';
+  const daCategoria = (i: Lancamento) => i.tipo !== 'Renda' && i.minhaParte !== 0 &&
+    (categoriaFiltro === 'Reserva' ? ['Saúde', 'Imprevistos'].includes(grupoDo(i)) : grupoDo(i) === categoriaFiltro);   // regra 15
   const visiveis = (itens ?? []).filter(i => (!soPendentes || i.pendente) && (!grupoFiltro || i.grupo === grupoFiltro)
     && (!categoriaFiltro || daCategoria(i)));
 

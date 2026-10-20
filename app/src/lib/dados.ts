@@ -1,9 +1,11 @@
 import { supabase } from './supabase';
+import { mesAtual, reais } from './formato';
 
 /** Consultas usadas pela tela Mês. Cada uma lê uma view do banco (RLS: só o dono). */
 
 export type ResumoMes = { competencia: string; renda: number; saidas: number; saldo: number };
-export type Categoria = { categoria: string; total: number; limite: number | null };   // limite em % da renda (regra 12)
+/** Um grupo do orçamento no mês (regras 12 a 14). limite/resta/excesso só existem nos grupos com limite. */
+export type GrupoMes = { grupo: string; tipo: string; gasto: number; limite: number | null; resta: number | null; excesso: number | null; detalhe?: string };
 export type FaturaCartao = {
   cartao: string; total: number; previsto: number; vencimento: string; fechada: boolean;
   somaCompras: number; encargos: number;   // conferência (regra 10), só em fatura fechada
@@ -113,56 +115,96 @@ export async function buscarSaidas(competencia: string): Promise<LinhaSaida[]> {
     .filter(g => Math.abs(g.valor) >= 0.005).sort((a, b) => b.valor - a.valor);
 }
 
-export async function buscarCategorias(competencia: string): Promise<Categoria[]> {
-  const [gastos, cadastro] = await Promise.all([
-    supabase.from('v_categorias_mes').select('categoria, total').eq('competencia', competencia).order('total', { ascending: false }),
-    supabase.from('categorias').select('nome, limite_percentual'),
-  ]);
-  if (gastos.error) throw gastos.error;
-  if (cadastro.error) throw cadastro.error;
-  const limiteDe = new Map((cadastro.data ?? []).map(c => [c.nome, c.limite_percentual === null ? null : num(c.limite_percentual)]));
-  const comGasto = (gastos.data ?? []).map(c => ({ categoria: c.categoria, total: num(c.total), limite: limiteDe.get(c.categoria) ?? null }));
-  // categoria com limite aparece mesmo sem gasto ainda: é aí que "resta R$ 200" mais ajuda
-  const semGasto = [...limiteDe].filter(([nome, limite]) => limite !== null && !comGasto.some(c => c.categoria === nome))
-    .map(([nome, limite]) => ({ categoria: nome, total: 0, limite }));
-  // com limite primeiro (maior meta na frente), depois as sem limite por valor gasto
-  return [...comGasto, ...semGasto].sort((a, b) =>
-    a.limite !== null && b.limite !== null ? b.limite - a.limite
-      : a.limite !== null ? -1 : b.limite !== null ? 1 : b.total - a.total);
+/**
+ * Quanto foi cada grupo no mês e quanto ainda resta (v_orcamento_grupos: o "resta" já vem com o corte
+ * proporcional da regra 14, o app não recalcula). Mês sem orçamento: só o gasto por grupo.
+ * Compras sem categoria (pendentes) aparecem como "Sem categoria".
+ */
+export async function buscarGrupos(competencia: string, orcamento: OrcamentoMes | null): Promise<GrupoMes[]> {
+  const opcional = (v: unknown) => (v === null || v === undefined ? null : num(v));
+
+  let grupos: (GrupoMes & { ordem: number })[];
+  if (orcamento) {
+    const orc = await supabase.from('v_orcamento_grupos').select('grupo, tipo, ordem, limite, gasto, resta, excesso').eq('competencia', competencia);
+    if (orc.error) throw orc.error;
+    grupos = (orc.data ?? [])
+      .map(g => ({ grupo: g.grupo, tipo: g.tipo, ordem: g.ordem, gasto: num(g.gasto), limite: opcional(g.limite), resta: opcional(g.resta), excesso: opcional(g.excesso) }))
+      .filter(g => g.limite !== null || g.gasto !== 0);   // grupo com limite aparece mesmo sem gasto
+    // regra 15: Saúde e Imprevistos dividem uma reserva só; viram uma linha, com o detalhe de cada uma.
+    // A reserva não entra no corte proporcional: o "resta" dela é só reserva − gasto.
+    const daReserva = grupos.filter(g => g.tipo === 'reserva');
+    const reserva = orcamento.reserva;
+    if (daReserva.length || reserva) {
+      const gasto = daReserva.reduce((t, g) => t + g.gasto, 0);
+      grupos = grupos.filter(g => g.tipo !== 'reserva');
+      grupos.push({
+        grupo: 'Reserva', tipo: 'reserva', ordem: Math.min(...daReserva.map(g => g.ordem), 90), gasto,
+        limite: reserva || null, resta: reserva ? Math.max(reserva - gasto, 0) : null, excesso: reserva ? Math.max(gasto - reserva, 0) : null,
+        detalhe: daReserva.map(g => `${g.grupo} ${reais(g.gasto)}`).join(' · ') || undefined,
+      });
+    }
+    const semGrupo = orcamento.semGrupo;
+    if (semGrupo) grupos.push({ grupo: 'Sem categoria', tipo: 'sem_limite', ordem: 99, gasto: semGrupo, limite: null, resta: null, excesso: null });
+  } else {
+    // antes de novembro/2026 não há orçamento: soma o gasto das categorias por grupo
+    const { data, error } = await supabase.from('v_categorias_mes').select('grupo, total').eq('competencia', competencia);
+    if (error) throw error;
+    const soma = new Map<string, number>();
+    (data ?? []).forEach(c => soma.set(c.grupo ?? 'Sem categoria', (soma.get(c.grupo ?? 'Sem categoria') ?? 0) + num(c.total)));
+    grupos = [...soma].map(([grupo, gasto]) => ({ grupo, tipo: 'sem_limite', ordem: 99, gasto, limite: null, resta: null, excesso: null }));
+  }
+  // com limite primeiro, na ordem do orçamento; depois os outros pelo gasto
+  return grupos.sort((a, b) =>
+    a.limite !== null && b.limite !== null ? a.ordem - b.ordem
+      : a.limite !== null ? -1 : b.limite !== null ? 1 : b.gasto - a.gasto)
+    .map(({ ordem: _ordem, ...g }) => g);
 }
 
-export type LimiteCategoria = { id: number; nome: string; limite: number | null };
+export type OrcamentoMes = {
+  resta: number;          // quanto ainda pode gastar: soma do "resta" dos limites, já com o corte (regra 14)
+  meta: number;
+  abaixoDaMeta: number;   // o que passou não coube no que restava: o mês fecha abaixo da meta
+  parcelas: number; teto: number | null;   // regra 17
+  reserva: number; semGrupo: number;       // reserva de Saúde + Imprevistos (regra 15); pendentes sem categoria
+  renda: number; rendaLancada: boolean;    // sem renda lançada, o orçamento usa a renda base (regra 13)
+};
 
-/** Categorias com o limite em % da renda (sem "A revisar", que não é categoria de verdade). */
-export async function buscarLimites(): Promise<LimiteCategoria[]> {
-  const { data, error } = await supabase.from('categorias').select('id, nome, limite_percentual').neq('nome', 'A revisar').order('nome');
+/** O orçamento do mês (v_orcamento_mes). null = mês sem orçamento (antes de novembro/2026). */
+export async function buscarOrcamentoMes(competencia: string): Promise<OrcamentoMes | null> {
+  const { data, error } = await supabase.from('v_orcamento_mes')
+    .select('resta, meta, abaixo_da_meta, parcelas, teto_parcelas, reserva, sem_grupo, renda, renda_lancada').eq('competencia', competencia).maybeSingle();
   if (error) throw error;
-  return (data ?? []).map(c => ({ id: c.id, nome: c.nome, limite: c.limite_percentual === null ? null : num(c.limite_percentual) }));
-}
-
-/** null = sem limite. */
-export async function salvarLimite(id: number, limite: number | null): Promise<void> {
-  const { error } = await supabase.from('categorias').update({ limite_percentual: limite }).eq('id', id);
-  if (error) throw error;
+  if (!data) return null;
+  return {
+    resta: num(data.resta), meta: num(data.meta), abaixoDaMeta: num(data.abaixo_da_meta),
+    parcelas: num(data.parcelas), teto: data.teto_parcelas === null ? null : num(data.teto_parcelas),
+    reserva: num(data.reserva), semGrupo: num(data.sem_grupo),
+    renda: num(data.renda), rendaLancada: data.renda_lancada,
+  };
 }
 
 export type Lancamento = {
   ref: string; grupo: string; tipo: string; descricao: string; data: string | null;
   categoria: string | null; status: string; valor: number; minhaParte: number; pessoas: string[]; pendente: boolean;
   divergencia: string | null;   // ex.: "Esperado 65,00" ou "Parcela anterior 98,35" (regras 3 e 5)
+  grupoOrcamento: string | null;   // grupo do orçamento da categoria (regra 12); "grupo" acima é o cartão/origem
 };
 
 /** Tudo do mês (compras, parcelas, fixas, débitos, gasolina, renda), mais recente primeiro. */
 export async function buscarTransacoes(competencia: string): Promise<Lancamento[]> {
-  const [lancamentos, pendentes] = await Promise.all([
+  const [lancamentos, pendentes, cats] = await Promise.all([
     supabase.from('v_lancamentos')
       .select('ref, tipo, descricao, valor, minha_parte, dividido_com, categoria, status, origem, data, divergencia')
       .eq('competencia', competencia).order('data', { ascending: false, nullsFirst: false }),
     // compras que chegaram do banco e ainda não foram classificadas
     supabase.from('transacoes').select('id').eq('competencia', competencia).eq('tipo', 'gasto').eq('revisado', false),
+    supabase.from('categorias').select('nome, grupos(nome)'),
   ]);
   if (lancamentos.error) throw lancamentos.error;
   if (pendentes.error) throw pendentes.error;
+  if (cats.error) throw cats.error;
+  // relação n:1, o tipo gerado não sabe: vem como objeto
+  const grupoDaCategoria = new Map((cats.data ?? []).map(c => [c.nome, (c.grupos as unknown as { nome: string } | null)?.nome ?? null]));
   const naoRevisadas = new Set((pendentes.data ?? []).map(t => 'tx:' + t.id));
   return (lancamentos.data ?? []).map(l => ({
     ref: l.ref, grupo: grupoDe(l.tipo, l.origem), tipo: l.tipo, descricao: l.descricao, data: l.data,
@@ -171,6 +213,7 @@ export async function buscarTransacoes(competencia: string): Promise<Lancamento[
     pessoas: l.dividido_com ? l.dividido_com.split(', ').map((q: string) => q.slice(0, q.lastIndexOf(' '))) : [],
     pendente: naoRevisadas.has(l.ref),
     divergencia: l.divergencia,
+    grupoOrcamento: l.categoria ? grupoDaCategoria.get(l.categoria) ?? null : null,
   }));
 }
 
@@ -181,10 +224,10 @@ export type Compra = {
   parcelaNum: number | null; parcelaTotal: number | null; categoriaId: number | null; rateios: Rateio[];
 };
 
-/** Categorias (sem "A revisar", que não é escolha válida) e pessoas, pra montar a classificação. */
+/** Categorias e pessoas, pra montar a classificação. */
 export async function buscarOpcoes(): Promise<{ categorias: Opcao[]; pessoas: Opcao[] }> {
   const [c, p] = await Promise.all([
-    supabase.from('categorias').select('id, nome').neq('nome', 'A revisar').order('nome'),
+    supabase.from('categorias').select('id, nome').order('nome'),
     supabase.from('pessoas').select('id, nome').order('id'),
   ]);
   if (c.error) throw c.error;
@@ -426,5 +469,56 @@ export async function atualizarDebito(id: number, competencia: string, descricao
 
 export async function atualizarGasolina(id: number, data: string, valor: number, cartaoId: number): Promise<void> {
   const { error } = await supabase.from('abastecimentos').update({ data, valor, cartao_id: cartaoId }).eq('id', id);
+  if (error) throw error;
+}
+
+export type ConfigOrcamento = {
+  aPartir: string;   // mês em que as mudanças passam a valer
+  grupos: { id: number; nome: string; limite: number | null }[];   // os grupos com limite (regra 14)
+  rendaBase: number | null; reserva: number; meta: number; teto: number | null;
+  fixos: number;     // contas fixas vigentes em aPartir
+};
+
+const vigenteEm = <T extends { inicio: string; fim: string | null }>(linhas: T[], mes: string) =>
+  linhas.filter(l => l.inicio <= mes && (!l.fim || l.fim >= mes)).sort((a, b) => b.inicio.localeCompare(a.inicio))[0];
+
+/**
+ * O orçamento como está valendo (regras 13 a 17). As mudanças valem a partir do maior entre
+ * o mês atual e o início do orçamento em vigor (ele começou em novembro/2026).
+ */
+export async function buscarConfigOrcamento(): Promise<ConfigOrcamento> {
+  const [orc, grupos, limites, fixas] = await Promise.all([
+    supabase.from('orcamento').select('inicio, fim, renda_base, reserva, meta, teto_parcelas'),
+    supabase.from('grupos').select('id, nome, ordem').eq('tipo', 'limite').order('ordem'),
+    supabase.from('limites').select('grupo_id, valor, inicio, fim'),
+    supabase.from('contas_fixas').select('valor, inicio, fim'),
+  ]);
+  for (const r of [orc, grupos, limites, fixas]) if (r.error) throw r.error;
+  const emAberto = (orc.data ?? []).filter(o => !o.fim).sort((a, b) => b.inicio.localeCompare(a.inicio))[0];
+  const aPartir = emAberto && emAberto.inicio > mesAtual() ? emAberto.inicio : mesAtual();
+  const o = vigenteEm(orc.data ?? [], aPartir);
+  return {
+    aPartir,
+    grupos: (grupos.data ?? []).map(g => {
+      const l = vigenteEm((limites.data ?? []).filter(x => x.grupo_id === g.id), aPartir);
+      return { id: g.id, nome: g.nome, limite: l ? num(l.valor) : null };
+    }),
+    rendaBase: o ? num(o.renda_base) : null, reserva: num(o?.reserva), meta: num(o?.meta),
+    teto: o?.teto_parcelas === null || o?.teto_parcelas === undefined ? null : num(o.teto_parcelas),
+    fixos: (fixas.data ?? []).filter(f => f.inicio <= aPartir && (!f.fim || f.fim >= aPartir)).reduce((t, f) => t + num(f.valor), 0),
+  };
+}
+
+/** Limite de um grupo a partir do mês (função definir_limite no banco). null encerra o limite. */
+export async function definirLimite(grupoId: number, valor: number | null, aPartir: string): Promise<void> {
+  const { error } = await supabase.rpc('definir_limite', { p_grupo: grupoId, p_valor: valor, p_a_partir: aPartir });
+  if (error) throw error;
+}
+
+/** Renda base, reserva, meta e teto a partir do mês (função definir_orcamento no banco). */
+export async function definirOrcamento(aPartir: string, rendaBase: number, reserva: number, meta: number, teto: number | null): Promise<void> {
+  const { error } = await supabase.rpc('definir_orcamento', {
+    p_a_partir: aPartir, p_renda_base: rendaBase, p_reserva: reserva, p_meta: meta, p_teto: teto,
+  });
   if (error) throw error;
 }

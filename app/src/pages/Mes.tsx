@@ -4,19 +4,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BotaoOlho } from '../components/BotaoOlho';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, venceOuVenceu } from '../lib/formato';
 import {
-  buscarAReceber, buscarCategorias, buscarFatura, buscarParcelamentos, buscarResumo, buscarSaidas,
-  type AReceber, type Categoria, type Fatura, type FaturaCartao, type LinhaSaida, type Parcela, type ResumoMes,
+  buscarAReceber, buscarFatura, buscarGrupos, buscarParcelamentos, buscarResumo, buscarSaidas, buscarOrcamentoMes,
+  type AReceber, type Fatura, type GrupoMes, type FaturaCartao, type LinhaSaida, type Parcela, type ResumoMes,
 } from '../lib/dados';
 import { Icone } from '../components/Icone';
 import { Anel } from '../components/Anel';
 import { SeletorMes } from '../components/SeletorMes';
 
-/** Cor e ícone de cada categoria no cartão "Categorias". */
+/** Cor e ícone de cada grupo no cartão "Categorias". */
 const ESTILO_CATEGORIA: Record<string, { cor: string; icone: string }> = {
-  'Conta fixa': { cor: '#F2B84B', icone: 'M3 11l9-7 9 7 M5 10v9h14v-9' },
+  'Fixos': { cor: '#F2B84B', icone: 'M3 11l9-7 9 7 M5 10v9h14v-9' },
   'Mercado': { cor: '#F2B84B', icone: 'M4 7h16l-1.5 12h-13z M8 7l4 5 4-5' },
-  'Gasolina': { cor: '#F0533F', icone: 'M5 20V6a2 2 0 012-2h6a2 2 0 012 2v14 M4 20h12' },
-  'Roupa': { cor: '#F2B84B', icone: 'M16 4l-4 2-4-2-4 3 2 3v10h12V10l2-3z' },
+  'Transporte': { cor: '#F0533F', icone: 'M5 20V6a2 2 0 012-2h6a2 2 0 012 2v14 M4 20h12' },
+  'Compras': { cor: '#F2B84B', icone: 'M16 4l-4 2-4-2-4 3 2 3v10h12V10l2-3z' },
 };
 const PADRAO = { cor: '#F2B84B', icone: 'M4 5h16v14H4z M8 10h8 M8 14h4' };
 
@@ -35,22 +35,31 @@ export function Mes() {
   // tudo da tela num pedido só, guardado em cache por mês (voltar pra aba não busca de novo)
   const { data, error } = useQuery({
     queryKey: ['mes', competencia],
-    queryFn: () => Promise.all([
-      buscarResumo(competencia),
-      buscarFatura(competencia),
-      buscarAReceber(competencia),
-      buscarCategorias(competencia),
-      buscarParcelamentos(competencia),
-      buscarSaidas(competencia),
-    ]),
+    queryFn: async () => {
+      // o orçamento primeiro: os grupos usam a reserva e os pendentes dele (uma consulta pesada a menos)
+      const orcamento = await buscarOrcamentoMes(competencia);
+      return Promise.all([
+        buscarResumo(competencia),
+        buscarFatura(competencia),
+        buscarAReceber(competencia),
+        buscarGrupos(competencia, orcamento),
+        buscarParcelamentos(competencia),
+        buscarSaidas(competencia),
+        orcamento,
+      ]);
+    },
   });
   const erro = error?.message ?? '';
   const resumo: ResumoMes | null | undefined = data ? data[0] : error ? null : undefined;   // undefined = carregando
   const fatura: Fatura = data?.[1] ?? null;
   const receber: AReceber = data?.[2] ?? { total: 0, pessoas: 0 };
-  const categorias: Categoria[] = data?.[3] ?? [];
+  const grupos: GrupoMes[] = data?.[3] ?? [];
   const parcelas: Parcela[] = data?.[4] ?? [];
   const saidas: LinhaSaida[] = data?.[5] ?? [];
+  const orcamento = data?.[6] ?? null;
+  const teto = orcamento?.teto ? { parcelas: orcamento.parcelas, teto: orcamento.teto } : null;
+  // mês aberto (atual ou futuro) com orçamento: o número grande é quanto ainda pode gastar; mês que passou: o saldo
+  const podeGastar = orcamento && competencia >= mesAtual() ? orcamento : null;
 
   // trocou de mês: fecha o que estava aberto
   useEffect(() => {
@@ -61,10 +70,13 @@ export function Mes() {
   }, [competencia]);
 
   const saldo = resumo?.saldo ?? 0;
-  const fracao = resumo && resumo.renda > 0 ? resumo.saidas / resumo.renda : 0;
+  const usaBase = !!podeGastar && !podeGastar.rendaLancada;   // mês aberto sem renda lançada: vale a renda base (regra 13)
+  const renda = usaBase ? podeGastar!.renda : resumo?.renda ?? 0;
+  const fracao = resumo && renda > 0 ? resumo.saidas / renda : 0;
+  const noVermelho = podeGastar ? podeGastar.abaixoDaMeta > 0 : saldo < 0;
   const estourou = fracao > 1;
   const abrirGrupo = (grupo: string) => navegar(`/transacoes?mes=${competencia}&grupo=${encodeURIComponent(grupo)}`);
-  const abrirCategoria = (categoria: string) => navegar(`/transacoes?mes=${competencia}&categoria=${encodeURIComponent(categoria)}`);
+  const abrirGrupoOrcamento = (grupo: string) => navegar(`/transacoes?mes=${competencia}&categoria=${encodeURIComponent(grupo)}`);
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -76,7 +88,7 @@ export function Mes() {
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>Olá, Douglas</div>
             <div className="mutado" style={{ fontSize: 13 }}>
-              {resumo ? (saldo < 0 ? 'Mês no vermelho, olho nos gastos' : 'Tudo certo por aqui!') : ' '}
+              {resumo ? (noVermelho ? 'Mês no vermelho, olho nos gastos' : 'Tudo certo por aqui!') : ' '}
             </div>
           </div>
         </div>
@@ -90,17 +102,27 @@ export function Mes() {
       <section className="vidro" style={{ padding: '18px 18px 16px' }}>
         <button onClick={() => resumo && setVerResumo(!verResumo)} aria-expanded={verResumo} disabled={!resumo}
           style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 16, fontWeight: 600 }}>
-          Saldo do mês
+          {podeGastar ? 'Pode gastar' : 'Saldo do mês'}
           {resumo && <span style={{ display: 'flex', transform: verResumo ? 'rotate(180deg)' : 'none' }}><Icone nome="baixo" tamanho={16} cor="#C9C2B7" /></span>}
         </button>
         {resumo === undefined ? <div className="mutado" style={{ marginTop: 8 }}>Carregando…</div>
           : resumo === null ? <div className="mutado" style={{ marginTop: 8 }}>Sem dados para este mês.</div>
           : <>
-            <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.8, marginTop: 6,
-              color: saldo < 0 ? 'var(--negativo)' : 'var(--texto)',
-              textShadow: saldo < 0 ? '0 0 22px rgba(240,83,63,0.35)' : 'none' }}>{reaisComSinal(saldo)}</div>
+            {podeGastar ? <>
+              <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.8, marginTop: 6,
+                color: podeGastar.abaixoDaMeta > 0 ? 'var(--negativo)' : 'var(--texto)' }}>R$ {reais(podeGastar.resta)}</div>
+              <div style={{ fontSize: 13, marginTop: 2, color: podeGastar.abaixoDaMeta > 0 ? 'var(--negativo)' : 'var(--texto-2)' }}>
+                {podeGastar.abaixoDaMeta > 0
+                  ? `o mês já está R$ ${reais(podeGastar.abaixoDaMeta)} abaixo da meta`
+                  : `já guardando R$ ${reais(podeGastar.meta)} da meta`}
+              </div>
+            </> : (
+              <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.8, marginTop: 6,
+                color: saldo < 0 ? 'var(--negativo)' : 'var(--texto)',
+                textShadow: saldo < 0 ? '0 0 22px rgba(240,83,63,0.35)' : 'none' }}>{reaisComSinal(saldo)}</div>
+            )}
             <div style={{ display: 'flex', gap: 26, marginTop: 10, fontSize: 14 }}>
-              <span className="mutado">Entra <b style={{ color: 'var(--mel)', fontWeight: 600 }}>R$ {reais(resumo.renda)}</b></span>
+              <span className="mutado">Entra <b style={{ color: 'var(--mel)', fontWeight: 600 }}>R$ {reais(renda)}</b>{usaBase && ' (base)'}</span>
               <span className="mutado">Sai <b style={{ color: 'var(--negativo)', fontWeight: 600 }}>R$ {reais(resumo.saidas)}</b></span>
             </div>
             {verResumo && (
@@ -158,8 +180,8 @@ export function Mes() {
           <div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>R$ {reais(resumo?.saidas ?? 0)}</div>
             <div className="mutado" style={{ fontSize: 14, marginTop: 2 }}>
-              {resumo?.renda
-                ? <><b style={{ fontWeight: 600, color: estourou ? 'var(--negativo)' : 'inherit' }}>{Math.round(fracao * 100)}%</b> da renda de R$ {reais(resumo.renda)}</>
+              {renda
+                ? <><b style={{ fontWeight: 600, color: estourou ? 'var(--negativo)' : 'inherit' }}>{Math.round(fracao * 100)}%</b> da renda{usaBase ? ' base' : ''} de R$ {reais(renda)}</>
                 : 'Renda ainda não lançada'}
             </div>
           </div>
@@ -169,19 +191,19 @@ export function Mes() {
       <section className="vidro" style={{ padding: '14px 14px 14px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 15, fontWeight: 500 }}>Categorias · quanto ainda pode</span>
-          {categorias.length > 4 && (
+          {grupos.length > 4 && (
             <button onClick={() => setVerCategorias(!verCategorias)} aria-expanded={verCategorias}
               style={{ fontSize: 12, color: 'var(--mel)', fontWeight: 600, padding: '4px 0' }}>
-              {verCategorias ? 'ver menos' : `ver todas (${categorias.length})`}
+              {verCategorias ? 'ver menos' : `ver todas (${grupos.length})`}
             </button>
           )}
         </div>
         <div style={{ width: 12, height: 2, borderRadius: 1, background: 'var(--mel)', marginTop: 6 }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
-          {categorias.slice(0, 4).map(c => {
-            const est = ESTILO_CATEGORIA[c.categoria] ?? PADRAO;
+          {grupos.slice(0, 4).map(c => {
+            const est = ESTILO_CATEGORIA[c.grupo] ?? PADRAO;
             return (
-              <button key={c.categoria} onClick={() => abrirCategoria(c.categoria)} style={{ textAlign: 'center', padding: '10px 2px 8px', borderRadius: 16,
+              <button key={c.grupo} onClick={() => abrirGrupoOrcamento(c.grupo)} style={{ textAlign: 'center', padding: '10px 2px 8px', borderRadius: 16,
                 background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', minWidth: 0 }}>
                 <div style={{ width: 46, height: 46, borderRadius: 23, margin: '0 auto', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', border: `1.5px solid ${est.cor}`, boxShadow: `0 0 12px ${est.cor}44`,
@@ -191,26 +213,29 @@ export function Mes() {
                     {est.icone.split(' M').map((d, i) => <path key={i} d={i === 0 ? d : 'M' + d} />)}
                   </svg>
                 </div>
-                <div style={{ fontSize: 12, marginTop: 7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.categoria}</div>
-                <div className="mutado" style={{ fontSize: 11, marginTop: 2 }}>{reais(c.total)}</div>
-                <UsoCategoria categoria={c} renda={resumo?.renda ?? 0} compacto />
+                <div style={{ fontSize: 12, marginTop: 7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.grupo}</div>
+                <div className="mutado" style={{ fontSize: 11, marginTop: 2 }}>{reais(c.gasto)}</div>
+                <UsoGrupo grupo={c} renda={renda} compacto />
               </button>
             );
           })}
-          {!categorias.length && <div className="mutado" style={{ gridColumn: '1 / -1', fontSize: 13 }}>Nenhum gasto neste mês.</div>}
+          {!grupos.length && <div className="mutado" style={{ gridColumn: '1 / -1', fontSize: 13 }}>Nenhum gasto neste mês.</div>}
         </div>
-        {/* todas, em lista: nome, % da renda (e do limite) e valor; toque abre Transações filtrada */}
+        {/* todos, em lista: quanto resta (ou % da renda, sem limite) e o gasto; toque abre Transações filtrada */}
         {verCategorias && (
           <div style={{ marginTop: 10 }}>
-            {categorias.map(c => (
-              <button key={c.categoria} onClick={() => abrirCategoria(c.categoria)}
+            {grupos.map(c => (
+              <button key={c.grupo} onClick={() => abrirGrupoOrcamento(c.grupo)}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0',
                   borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 14, textAlign: 'left' }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.categoria}</span>
-                  <UsoCategoria categoria={c} renda={resumo?.renda ?? 0} />
+                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.grupo}{c.grupo === 'Reserva' && <span className="mutado" style={{ fontSize: 12 }}> (Saúde + Imprevistos)</span>}
+                  </span>
+                  <UsoGrupo grupo={c} renda={renda} />
+                  {c.detalhe && <span className="mutado" style={{ display: 'block', fontSize: 11, marginTop: 3 }}>{c.detalhe}</span>}
                 </span>
-                <span style={{ width: 82, textAlign: 'right', fontWeight: 600 }}>R$ {reais(c.total)}</span>
+                <span style={{ width: 82, textAlign: 'right', fontWeight: 600 }}>R$ {reais(c.gasto)}</span>
                 <Icone nome="seta" tamanho={12} cor="#C9C2B7" />
               </button>
             ))}
@@ -218,7 +243,7 @@ export function Mes() {
         )}
       </section>
 
-      {parcelas.length > 0 && <CartaoParcelamentos parcelas={parcelas} aberto={verParcelas} alternar={() => setVerParcelas(!verParcelas)} />}
+      {parcelas.length > 0 && <CartaoParcelamentos parcelas={parcelas} teto={teto} aberto={verParcelas} alternar={() => setVerParcelas(!verParcelas)} />}
     </main>
   );
 }
@@ -240,7 +265,7 @@ function CartaoPequeno({ titulo, valor, rodape, aoTocar, aberto }: { titulo: str
 }
 
 /** Parcelamentos do mês: resumo da sua parte; aberto, separa as suas das de outras pessoas. */
-function CartaoParcelamentos({ parcelas, aberto, alternar }: { parcelas: Parcela[]; aberto: boolean; alternar: () => void }) {
+function CartaoParcelamentos({ parcelas, teto, aberto, alternar }: { parcelas: Parcela[]; teto: { parcelas: number; teto: number } | null; aberto: boolean; alternar: () => void }) {
   const suas = parcelas.filter(p => p.minhaParte > 0).sort((a, b) => b.minhaParte - a.minhaParte);
   const minhaParte = suas.reduce((t, p) => t + p.minhaParte, 0);
   const ultima = suas.reduce((u, p) => (p.ultima > u ? p.ultima : u), '');
@@ -264,6 +289,7 @@ function CartaoParcelamentos({ parcelas, aberto, alternar }: { parcelas: Parcela
               ? `${suas.length} ${suas.length === 1 ? 'compra sua' : 'compras suas'} · última em ${nomeMes(ultima).toLowerCase()}`
               : 'Nenhuma parcela sua neste mês'}
           </span>
+          {teto && <LinhaTeto teto={teto} doCartao={minhaParte} />}
         </span>
         <span style={{ display: 'flex', marginTop: 2, transform: aberto ? 'rotate(180deg)' : 'none' }}>
           <Icone nome="baixo" tamanho={16} cor="#C9C2B7" />
@@ -336,30 +362,45 @@ function Conferencia({ fatura: f, aoTocar }: { fatura: FaturaCartao; aoTocar: ()
 }
 
 /**
- * Regra 12: com limite, mostra quanto ainda dá pra gastar no mês (limite em % × renda − gasto);
- * sem limite, a % da renda. Âmbar a partir de 80% do limite, vermelho quando passa. Sem renda: nada.
+ * Regra 14: com limite, quanto ainda pode (o "resta" já vem do banco com o corte proporcional) ou quanto passou.
+ * A barra mostra o que já não está disponível (1 − resta/limite), então o corte aparece como consumo.
+ * Sem limite: a % da renda. Âmbar a partir de 80%, vermelho quando passa.
  */
-function UsoCategoria({ categoria: c, renda, compacto = false }: { categoria: Categoria; renda: number; compacto?: boolean }) {
-  if (renda <= 0) return null;
-  if (!c.limite) {
-    return <span className="mutado" style={{ display: 'block', fontSize: 11, marginTop: compacto ? 4 : 3 }}>{Math.round(c.total / renda * 100)}% da renda</span>;
+function UsoGrupo({ grupo: g, renda, compacto = false }: { grupo: GrupoMes; renda: number; compacto?: boolean }) {
+  if (g.limite === null || g.resta === null) {
+    if (renda <= 0) return null;
+    return <span className="mutado" style={{ display: 'block', fontSize: 11, marginTop: compacto ? 4 : 3 }}>{Math.round(g.gasto / renda * 100)}% da renda</span>;
   }
-  const teto = renda * c.limite / 100;
-  const resta = teto - c.total;
-  const uso = c.total / teto;   // 1 = bateu o limite
-  const cor = uso > 1 ? 'var(--negativo)' : uso >= 0.8 ? 'var(--mel)' : 'var(--positivo)';
-  const texto = resta < 0
-    ? (compacto ? `passou ${reais(-resta)}` : `passou R$ ${reais(-resta)} do limite de R$ ${reais(teto)}`)
-    : (compacto ? `resta ${reais(resta)}` : `ainda pode R$ ${reais(resta)} de R$ ${reais(teto)}`);
+  const passou = (g.excesso ?? 0) > 0;
+  const uso = passou ? 1 : 1 - g.resta / g.limite;
+  const cor = passou ? 'var(--negativo)' : uso >= 0.8 ? 'var(--mel)' : 'var(--positivo)';
+  const texto = passou
+    ? (compacto ? `passou ${reais(g.excesso!)}` : `passou R$ ${reais(g.excesso!)} do limite de R$ ${reais(g.limite)}`)
+    : (compacto ? `resta ${reais(g.resta)}` : `ainda pode R$ ${reais(g.resta)} de R$ ${reais(g.limite)}`);
   return (
     <span style={{ display: 'block', marginTop: compacto ? 4 : 3 }}>
-      <span style={{ display: 'block', fontSize: 11, fontWeight: resta < 0 ? 700 : 500, color: cor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <span style={{ display: 'block', fontSize: 11, fontWeight: passou ? 700 : 500, color: cor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {texto}
       </span>
       <span aria-hidden="true" style={{ display: 'block', height: 3, borderRadius: 2, marginTop: 3, background: 'rgba(255,255,255,0.08)',
         width: compacto ? '70%' : '100%', marginInline: compacto ? 'auto' : 0, overflow: 'hidden' }}>
-        <span style={{ display: 'block', height: '100%', width: `${Math.min(100, uso * 100)}%`, background: cor, borderRadius: 2 }} />
+        <span style={{ display: 'block', height: '100%', width: `${Math.min(100, Math.max(0, uso) * 100)}%`, background: cor, borderRadius: 2 }} />
       </span>
+    </span>
+  );
+}
+
+/**
+ * Regra 17: soma de todas as parcelas do mês contra o teto. Inclui débitos lançados em mais de uma parcela,
+ * por isso pode ser maior que o total do card (que só lê o cartão).
+ */
+function LinhaTeto({ teto: t, doCartao }: { teto: { parcelas: number; teto: number }; doCartao: number }) {
+  const passou = t.parcelas - t.teto;
+  const debitos = t.parcelas - doCartao;
+  return (
+    <span style={{ display: 'block', fontSize: 12, marginTop: 6, color: passou > 0.005 ? 'var(--negativo)' : 'var(--texto-2)' }}>
+      {passou > 0.005 ? `teto R$ ${reais(t.teto)} · passou R$ ${reais(passou)}` : `teto R$ ${reais(t.teto)} · cabe mais R$ ${reais(-passou)}`}
+      {debitos > 0.005 && <span className="mutado"> (inclui R$ {reais(debitos)} de débito parcelado)</span>}
     </span>
   );
 }
