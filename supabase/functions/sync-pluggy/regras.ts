@@ -4,7 +4,7 @@
 export const TZ = 'America/Sao_Paulo';
 
 export type Cartao = { id: number; nome: string; dia_fechamento: number };
-export type Regra = { texto: string; categoria_id: number; divisao_padrao: unknown };
+export type Regra = { texto: string; categoria_id: number; divisao_padrao: unknown; valor: number | null };
 
 /** Remove acentos, deixa em maiúsculas e junta espaços. */
 export function norm(s: unknown): string {
@@ -51,10 +51,14 @@ export function ehTaxa(descricao: string, categoriaPluggy?: string | null): bool
     ['Interests charged', 'Bank fees', 'Tax on financial operations'].includes(categoriaPluggy ?? '');
 }
 
-/** Primeira regra (por prioridade) cujo texto aparece na descrição. */
-export function achaRegra(descricao: string, regras: Regra[]): Regra | null {
+/**
+ * Primeira regra (por prioridade) cujo texto aparece na descrição.
+ * Regra com valor só vale para compras desse valor (ex.: a assinatura da apple.com).
+ */
+export function achaRegra(descricao: string, valor: number, regras: Regra[]): Regra | null {
   const d = norm(descricao);
-  return regras.find(r => r.texto && d.includes(norm(r.texto))) ?? null;
+  return regras.find(r => r.texto && d.includes(norm(r.texto)) &&
+    (r.valor == null || Math.abs(Number(r.valor) - valor) < 0.01)) ?? null;
 }
 
 /** Chave que agrupa as parcelas da mesma compra (igual à usada na view v_itens). */

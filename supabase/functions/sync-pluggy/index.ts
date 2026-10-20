@@ -88,7 +88,7 @@ async function sincronizar(db: SupabaseClient) {
   // cadastros
   const cartoes = ler(await db.from('cartoes').select('id, nome, dia_fechamento, pluggy_account_id').eq('conectado', true), 'cartoes');
   const categorias = ler(await db.from('categorias').select('id, nome'), 'categorias');
-  const regras = ler(await db.from('regras_categoria').select('texto, categoria_id, divisao_padrao').order('prioridade'), 'regras_categoria');
+  const regras = ler(await db.from('regras_categoria').select('texto, categoria_id, divisao_padrao, valor').order('prioridade'), 'regras_categoria');
   const pessoas = ler(await db.from('pessoas').select('id, nome'), 'pessoas');
   const catId = (nome: string) => categorias.find(c => c.nome === nome)?.id ?? null;
   const pessoaId = (nome: string) => pessoas.find(p => p.nome === nome)?.id ?? null;
@@ -212,9 +212,9 @@ async function processarTransacoes(
         if (antiga) { sumiram.splice(sumiram.indexOf(antiga), 1); r.substituidas++; await db.from('transacoes').delete().eq('id', antiga.id); }
         else r.herdadas++;
       } else {
-        // c) regra de categoria (com divisão padrão, se houver)
-        const regra = achaRegra(linha.descricao, regras);
-        categoria_id = regra?.categoria_id ?? catId('A revisar');
+        // c) regra de categoria (com divisão padrão, se houver); sem regra fica sem categoria (pendente)
+        const regra = achaRegra(linha.descricao, linha.valor, regras);
+        categoria_id = regra?.categoria_id ?? null;
         if (Array.isArray(regra?.divisao_padrao)) {
           rateios = (regra!.divisao_padrao as any[]).map(d => ({
             pessoa_id: pessoaId(d.pessoa)!, valor: d.valor ?? null, percentual: d.percentual ?? null,

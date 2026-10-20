@@ -12,6 +12,8 @@ erDiagram
   categorias ||--o{ transacoes : ""
   categorias ||--o{ debitos : ""
   categorias ||--o{ regras_categoria : ""
+  grupos ||--o{ categorias : ""
+  grupos ||--o{ limites : ""
   pessoas ||--o{ rateios : ""
   pessoas ||--o{ pagamentos : ""
   transacoes ||--o{ rateios : ""
@@ -26,10 +28,13 @@ erDiagram
 | Tabela | Para quê |
 |---|---|
 | `pessoas` | Quem divide gastos (o dono do app é implícito), com telefone pra cobrança no WhatsApp |
-| `categorias` | Categorias de gasto, com limite opcional em % da renda (regra 12) |
+| `grupos` | O que aparece no orçamento: com limite, reserva, fixo ou sem limite (regra 12) |
+| `categorias` | Detalhe de um grupo (ex.: Gasolina e Uber/ônibus em Transporte) |
 | `cartoes` | Cartões conectados ou não, com regras de fechamento e vencimento |
-| `regras_categoria` | Texto da descrição → categoria (e divisão padrão opcional) |
+| `regras_categoria` | Texto da descrição → categoria (e divisão padrão opcional); com valor, só vale para compras desse valor |
 | `contas_fixas` | Contas recorrentes com vigência |
+| `limites` | Limite em reais de cada grupo, com vigência (regra 14) |
+| `orcamento` | Renda base, reserva, meta e teto de parcelas, com vigência (regras 13 a 17) |
 
 **Movimento**
 
@@ -69,7 +74,10 @@ erDiagram
 | `v_lancamentos` | Tudo junto, com mês, tipo, valor, parte do dono e status (real, previsto, esperado, manual) |
 | `v_mes` | Renda, saídas por grupo e sobra de cada mês |
 | `v_acertos` | Devido e pago por pessoa e mês |
-| `v_categorias_mes` | Sua parte gasta em cada categoria, por mês |
+| `v_categorias_mes` | Sua parte gasta em cada categoria, por mês, com o grupo |
+| `v_orcamento_base` | Cada mês com orçamento × cada grupo: limite e gasto (base das duas seguintes) |
+| `v_orcamento_mes` | O mês inteiro: fixos, reserva, parcelas × teto, comprometido, folga, corte e saldo previsto |
+| `v_orcamento_grupos` | Cada grupo no mês: limite, gasto, excesso e quanto ainda resta depois do corte proporcional |
 | `v_parcelamentos` | Cada parcela do mês (real ou prevista), com a sua parte, quanto falta e o mês da última |
 | `v_ritmo` | Sua parte acumulada dia a dia |
 | `v_faturas_mes` | Fatura de cada cartão por mês: total do banco se fechada; se aberta ou futura, compras que já chegaram + parcelas previstas. Com soma das compras e encargos pra conferência (regra 10) |

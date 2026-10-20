@@ -49,3 +49,13 @@ Os pagamentos são sempre do valor exato do mês, então cada mês fecha sozinho
 ## 012 · Cache no app em vez de buscar a cada tela
 
 Os dados só mudam com a sincronização diária ou quando o próprio app grava algo. Com TanStack Query, cada tela busca uma vez e depois mostra na hora; qualquer gravação marca tudo para atualizar.
+
+## 013 · Categorias novas e limites em reais
+
+A primeira versão dos limites (em % da renda, sobre as 20 categorias da planilha antiga) ficou confusa: categorias sobrepostas, percentuais com decimais estranhos, limites copiados do gasto real e nenhuma conta para fixos e parcelas, que comprometem de 27% a 47% da renda antes do mês começar. Tudo foi redesenhado a partir dos gastos reais de agosto a outubro de 2026 (regras 12 a 17, detalhes em `proposta-orcamento.md`):
+
+- 9 categorias no lugar de 20, só 5 com limite (as que são escolha).
+- Limite em reais, montado sobre uma renda base; a renda real só muda o saldo.
+- Saúde e Imprevistos dividem uma reserva mensal, que não acumula.
+- Meta como alvo do saldo do mês que já existia.
+- Teto para a soma das parcelas, porque parcelar não pode ser um jeito de escapar do limite.
