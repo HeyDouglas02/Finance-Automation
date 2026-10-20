@@ -81,8 +81,14 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 - [x] Conferência de faturas e aviso de divergência
 - [x] PWA instalável e deploy (Vercel)
 - [x] Orçamento: limites em reais por categoria, reserva, meta e teto de parcelas
-- [ ] Sincronizar pelo app (hoje só a automática, a cada 3h)
-- [ ] Pix copia e cola na cobrança
+
+**Próxima fase**
+
+- [ ] Pix copia e cola na mensagem de cobrança
+- [ ] Mais de uma pessoa usando, com um banco por pessoa (*database-per-tenant*): a parte de cada uma nas compras do cartão de outra chega sozinha no app dela, já com a categoria
+- [ ] Criar o banco de uma pessoa nova automaticamente (provisionamento)
+- [ ] Notificações (a definir quais)
+- [ ] Baixa automática de pagamentos pela conta corrente (a avaliar)
 
 ## Rodando localmente
 
