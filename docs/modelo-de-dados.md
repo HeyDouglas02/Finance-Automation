@@ -64,6 +64,8 @@ erDiagram
 | `lancar_debito(competencia, descricao, valor, parcelas, categoria, rateios)` | Cria um débito com a divisão, numa transação só (regra 6) |
 | `editar_debito(debito, competencia, descricao, valor, parcelas, categoria, rateios)` | Corrige um débito com a divisão, numa transação só (vale pra todas as parcelas) |
 | `mudar_valor_conta_fixa(conta, valor, a_partir)` | Encerra a conta fixa antiga e cria a nova com o valor novo (regra 3) |
+| `definir_limite(grupo, valor, a_partir)` | Limite de um grupo a partir do mês, com vigência; valor vazio encerra (regra 14) |
+| `definir_orcamento(a_partir, renda_base, reserva, meta, teto)` | Renda base, reserva, meta e teto de parcelas a partir do mês, com vigência (regras 13, 15 a 17) |
 
 ## Views
 

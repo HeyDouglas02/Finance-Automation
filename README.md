@@ -21,6 +21,7 @@ Todos os gastos passam pelo cartão de crédito, mas parte deles é de outras pe
 | Conferir fatura linha a linha | Conferência automática: soma das compras × total do banco |
 | Calcular acertos na mão | Rateio por pessoa (valor fixo ou %) e acertos por mês |
 | Lembrar parcelas | Parcelas futuras previstas e substituídas pela real quando chega |
+| Saber se ainda posso gastar | Orçamento com limite por categoria: o que passa numa é descontado das outras, e o mês fecha na meta |
 
 ## Arquitetura
 
@@ -44,11 +45,11 @@ Cinco abas, cada uma responde uma pergunta:
 
 | Aba | Pergunta |
 |---|---|
-| **Mês** | Quanto sobra? Saldo com o resumo (renda − cada cartão − fixas − débitos − gasolina), fatura por cartão com conferência, a receber, categorias e parcelamentos |
+| **Mês** | Quanto ainda posso gastar? **Pode gastar** (já guardando a meta), quanto resta em cada categoria (Mercado, Comer fora, Lazer, Compras, Transporte e a reserva de Saúde + Imprevistos), fatura por cartão com conferência, a receber e parcelamentos com o teto |
 | **Transações** | Pra onde foi? Tudo do mês agrupado, com o filtro **Pendentes** pra classificar compras novas (de quem é + categoria) |
 | **Lançar** | Renda, débito (com divisão e parcelas) e gasolina |
 | **Acertos** | Quem me deve: itens por pessoa, cobrança pelo WhatsApp e "Recebi" |
-| **Mais** | Status dos bancos, telefones, contas fixas, sair |
+| **Mais** | Status dos bancos, telefones, contas fixas, limites do mês (renda base, reserva, meta, teto de parcelas), sair |
 
 Um botão de olho esconde todos os valores.
 
@@ -74,11 +75,12 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 - [x] Regras de negócio definidas e validadas
 - [x] Modelo de dados
 - [x] Migração dos dados
-- [x] Sincronização como Edge Function (diária, via pg_cron)
+- [x] Sincronização como Edge Function (a cada 3h, via pg_cron)
 - [x] App: Mês, Transações (com classificação), Lançar, Acertos e Mais
 - [x] Cobrança pelo WhatsApp (link `wa.me` com a mensagem pronta)
 - [x] Conferência de faturas e aviso de divergência
-- [ ] PWA instalável e deploy
+- [x] PWA instalável e deploy (Vercel)
+- [x] Orçamento: limites em reais por categoria, reserva, meta e teto de parcelas
 - [ ] Sincronizar pelo app (hoje só a automática, a cada 3h)
 - [ ] Pix copia e cola na cobrança
 

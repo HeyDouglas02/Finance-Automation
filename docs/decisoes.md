@@ -59,3 +59,8 @@ A primeira versão dos limites (em % da renda, sobre as 20 categorias da planilh
 - Saúde e Imprevistos dividem uma reserva mensal, que não acumula.
 - Meta como alvo do saldo do mês que já existia.
 - Teto para a soma das parcelas, porque parcelar não pode ser um jeito de escapar do limite.
+
+## 014 · "Pode gastar" como número principal do mês
+
+No mês aberto, o número grande da tela Mês passou a ser **quanto ainda posso gastar** (a soma do que resta nos limites, já com o corte da regra 14), e não o saldo. O saldo (renda − saídas) inclui a meta: mostrar ele em destaque convidava a gastar a meta junto. Mês que já passou continua mostrando o saldo, que é o resultado real. Mês aberto sem renda lançada usa a renda base em todo lugar (entra, ritmo, saudação), para a tela não dizer "pode gastar" e "no vermelho" ao mesmo tempo.
+
