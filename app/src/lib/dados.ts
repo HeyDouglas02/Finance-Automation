@@ -611,3 +611,15 @@ export async function definirOrcamento(aPartir: string, rendaBase: number, reser
   });
   if (error) throw error;
 }
+
+/** Chave Pix da cobrança pelo WhatsApp (regra 22). Vazia = mensagem sem a linha do Pix. */
+export async function buscarChavePix(): Promise<string | null> {
+  const { data, error } = await supabase.from('configuracoes').select('chave_pix').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data?.chave_pix ?? null;
+}
+
+export async function salvarChavePix(chave: string): Promise<void> {
+  const { error } = await supabase.from('configuracoes').update({ chave_pix: chave.trim() || null }).eq('id', 1);
+  if (error) throw error;
+}

@@ -174,3 +174,8 @@ Renda base
 - A sincronização lê os bancos dessa lista (sai do segredo do servidor e vai para uma tabela).
 - Os cartões de cada banco aparecem sozinhos (regra 20).
 - Desconectar = arquivar: a sincronização para de ler aquele banco e o histórico fica.
+
+## 22. Chave Pix
+
+- Fica na aba Mais → **Chave Pix**, editável pelo app.
+- Usada na mensagem de cobrança pelo WhatsApp. Sem chave, a mensagem vai sem a linha do Pix.

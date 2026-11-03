@@ -5,6 +5,7 @@ import { Pessoas } from '../components/Pessoas';
 import { Cartoes } from '../components/Cartoes';
 import { ContasFixas } from '../components/ContasFixas';
 import { LimitesCategorias } from '../components/LimitesCategorias';
+import { ChavePix } from '../components/ChavePix';
 
 const SECOES: Record<string, { titulo: string; conteudo: () => JSX.Element }> = {
   bancos: { titulo: 'Bancos', conteudo: () => <Conexoes /> },
@@ -12,6 +13,7 @@ const SECOES: Record<string, { titulo: string; conteudo: () => JSX.Element }> = 
   pessoas: { titulo: 'Pessoas', conteudo: () => <Pessoas /> },
   'contas-fixas': { titulo: 'Contas fixas', conteudo: () => <ContasFixas /> },
   limites: { titulo: 'Limites do mês', conteudo: () => <LimitesCategorias /> },
+  pix: { titulo: 'Chave Pix', conteudo: () => <ChavePix /> },
 };
 
 /** Subtela da aba Mais, com "voltar" (como a tela Meses). */

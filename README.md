@@ -49,7 +49,7 @@ Cinco abas, cada uma responde uma pergunta:
 | **Transações** | Pra onde foi? Tudo do mês agrupado, com o filtro **Pendentes** pra classificar compras novas (de quem é + categoria) |
 | **Lançar** | Renda, débito (com divisão e parcelas) e gasolina |
 | **Fechamento** | O mês fecha? Entradas (renda e quem me deve, com cobrança pelo WhatsApp) com "Recebi", saídas (faturas, contas fixas e débitos) com "Paguei", sobra e quanto deveria ter na conta |
-| **Mais** | Menu de cadastros, cada um numa subtela: bancos, cartões, pessoas, contas fixas, limites do mês (renda base, reserva, meta, teto de parcelas); e sair |
+| **Mais** | Menu de cadastros, cada um numa subtela: bancos, cartões, pessoas, contas fixas, limites do mês (renda base, reserva, meta, teto de parcelas), chave Pix; e sair |
 
 Um botão de olho esconde todos os valores.
 

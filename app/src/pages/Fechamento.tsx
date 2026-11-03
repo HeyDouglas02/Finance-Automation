@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
-  buscarAcertos, buscarFechamento, buscarItensAcerto, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
+  buscarAcertos, buscarChavePix, buscarFechamento, buscarItensAcerto, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
   type Acerto, type ItemAcerto, type LinhaFechamento,
 } from '../lib/dados';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, somaMes, venceOuVenceu } from '../lib/formato';
@@ -201,11 +201,11 @@ function CartaoPessoa({ acerto: a, competencia, aberta, alternar, mudou }: {
 
 /** Abre o WhatsApp da pessoa com a cobrança escrita (o envio é com você). */
 function BotaoWhatsApp({ acerto: a, itens, competencia }: { acerto: Acerto; itens: ItemAcerto[] | null; competencia: string }) {
+  const pix = useQuery({ queryKey: ['chavePix'], queryFn: buscarChavePix }).data;
   if (!a.telefone) {
     return <span className="mutado" style={{ flex: 1, fontSize: 12, alignSelf: 'center', lineHeight: 1.4 }}>Sem telefone cadastrado</span>;
   }
   const mes = nomeMes(competencia).split(' ')[0].toLowerCase();
-  const pix = import.meta.env.VITE_PIX_CHAVE;
   const mensagem = [
     `Oi, ${a.pessoa}! Acerto de ${mes}:`,
     ...(itens ?? []).map(i => `• ${i.descricao}: R$ ${reais(i.valor)}`),
