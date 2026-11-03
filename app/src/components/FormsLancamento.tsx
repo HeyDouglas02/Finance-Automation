@@ -89,6 +89,9 @@ export function FormDebito({ competencia, salvou, editando }: { competencia: str
   const [parcelas, setParcelas] = useState(String(editando?.parcelas ?? 1));
   const [categoriaId, setCategoriaId] = useState<number | null>(editando?.categoriaId ?? null);
   const [divisao, setDivisao] = useState<EstadoDivisao>(editando ? estadoDeRateios(editando.rateios, Math.abs(editando.valor)) : DIVISAO_MINHA);
+  const [origem, setOrigem] = useState<string | null>(editando?.origem ?? null);
+  // quem pode ter pago por mim: as pessoas ativas (e a origem do lançamento, mesmo arquivada ou fora da lista)
+  const pagantes = [...new Set([...opcoes.pessoas.filter(p => !p.arquivada).map(p => p.nome), ...(editando?.origem ? [editando.origem] : [])])];
   const [mes, setMes] = useState(paraMes(editando?.competencia ?? competencia));
   const comp = editando ? doMes(mes) : competencia;
 
@@ -96,11 +99,11 @@ export function FormDebito({ competencia, salvou, editando }: { competencia: str
   const { rateios, passou, incompleta } = calcularDivisao(divisao, Math.abs(numero(valor)));
   const { salvando, erro, salvar } = useSalvar(
     () => editando
-      ? atualizarDebito(editando.id, comp, descricao, numero(valor), n, categoriaId!, rateios)
-      : lancarDebito(comp, descricao, numero(valor), n, categoriaId!, rateios),
+      ? atualizarDebito(editando.id, comp, descricao, numero(valor), n, categoriaId!, rateios, origem)
+      : lancarDebito(comp, descricao, numero(valor), n, categoriaId!, rateios, origem),
     () => {
       salvou(editando ? 'Débito corrigido.' : `${descricao.trim()} lançado${n > 1 ? ` em ${n} parcelas` : ''}.`);
-      if (!editando) { setDescricao(''); setValor(''); setParcelas('1'); setCategoriaId(null); setDivisao(DIVISAO_MINHA); }
+      if (!editando) { setDescricao(''); setValor(''); setParcelas('1'); setCategoriaId(null); setDivisao(DIVISAO_MINHA); setOrigem(null); }
     },
   );
 
@@ -121,6 +124,13 @@ export function FormDebito({ competencia, salvou, editando }: { competencia: str
         {n}× R$ {reais(numero(valor))} = R$ {reais(n * numero(valor))}, de {nomeMes(comp).toLowerCase()} em diante
       </div>
     )}
+
+    <Titulo>Quem pagou?</Titulo>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <Chip ativo={origem === null} onClick={() => setOrigem(null)}>Eu</Chip>
+      {pagantes.map(nome => <Chip key={nome} ativo={origem === nome} onClick={() => setOrigem(nome)}>{nome}</Chip>)}
+    </div>
+    {origem && <div className="mutado" style={{ fontSize: 13, padding: '0 4px' }}>No Fechamento entra em "Pagar {origem}", junto com o resto que {origem} pagou por você no mês.</div>}
 
     <Titulo>De quem é?</Titulo>
     <Divisao pessoas={opcoes.pessoas} estado={divisao} mudar={setDivisao} total={Math.abs(numero(valor))} />

@@ -446,9 +446,10 @@ export async function lancarRenda(competencia: string, fonte: string, valor: num
 }
 
 /** Débito + divisão (função lancar_debito no banco, regra 6). valor = de cada parcela. */
-export async function lancarDebito(competencia: string, descricao: string, valor: number, parcelas: number, categoriaId: number, rateios: Rateio[]): Promise<void> {
+/** origem: nome de quem pagou por mim (null = eu paguei); no Fechamento vira "Pagar <origem>" (regra 18). */
+export async function lancarDebito(competencia: string, descricao: string, valor: number, parcelas: number, categoriaId: number, rateios: Rateio[], origem: string | null): Promise<void> {
   const { error } = await supabase.rpc('lancar_debito', {
-    p_competencia: competencia, p_descricao: descricao, p_valor: valor, p_parcelas: parcelas, p_categoria: categoriaId, p_rateios: rateios,
+    p_competencia: competencia, p_descricao: descricao, p_valor: valor, p_parcelas: parcelas, p_categoria: categoriaId, p_rateios: rateios, p_origem: origem,
   });
   if (error) throw error;
 }
@@ -535,7 +536,7 @@ export async function arquivarConexao(itemId: string, arquivada: boolean): Promi
 /** Um lançamento manual pra editar, com os dados que o formulário precisa. */
 export type Editavel =
   | { tipo: 'renda'; id: number; competencia: string; fonte: string; valor: number }
-  | { tipo: 'debito'; id: number; competencia: string; descricao: string; valor: number; parcelas: number; categoriaId: number | null; rateios: Rateio[] }
+  | { tipo: 'debito'; id: number; competencia: string; descricao: string; valor: number; parcelas: number; categoriaId: number | null; rateios: Rateio[]; origem: string | null }
   | { tipo: 'gasolina'; id: number; data: string; valor: number; cartaoId: number };
 
 export async function buscarEditavel(tipo: Lancado['tipo'], id: number): Promise<Editavel> {
@@ -546,11 +547,11 @@ export async function buscarEditavel(tipo: Lancado['tipo'], id: number): Promise
   }
   if (tipo === 'debito') {
     const { data, error } = await supabase.from('debitos')
-      .select('competencia_inicio, descricao, valor, parcelas, categoria_id, rateios(pessoa_id, valor, percentual)').eq('id', id).single();
+      .select('competencia_inicio, descricao, valor, parcelas, categoria_id, origem, rateios(pessoa_id, valor, percentual)').eq('id', id).single();
     if (error) throw error;
     return {
       tipo, id, competencia: data.competencia_inicio, descricao: data.descricao, valor: num(data.valor), parcelas: data.parcelas,
-      categoriaId: data.categoria_id,
+      categoriaId: data.categoria_id, origem: data.origem,
       rateios: (data.rateios ?? []).map(r => ({ pessoa_id: r.pessoa_id, valor: r.valor === null ? null : num(r.valor), percentual: r.percentual === null ? null : num(r.percentual) })),
     };
   }
@@ -565,9 +566,9 @@ export async function atualizarRenda(id: number, competencia: string, fonte: str
 }
 
 /** Débito + divisão (função editar_debito no banco). Parcelado: vale pra todas as parcelas. */
-export async function atualizarDebito(id: number, competencia: string, descricao: string, valor: number, parcelas: number, categoriaId: number, rateios: Rateio[]): Promise<void> {
+export async function atualizarDebito(id: number, competencia: string, descricao: string, valor: number, parcelas: number, categoriaId: number, rateios: Rateio[], origem: string | null): Promise<void> {
   const { error } = await supabase.rpc('editar_debito', {
-    p_debito: id, p_competencia: competencia, p_descricao: descricao, p_valor: valor, p_parcelas: parcelas, p_categoria: categoriaId, p_rateios: rateios,
+    p_debito: id, p_competencia: competencia, p_descricao: descricao, p_valor: valor, p_parcelas: parcelas, p_categoria: categoriaId, p_rateios: rateios, p_origem: origem,
   });
   if (error) throw error;
 }
