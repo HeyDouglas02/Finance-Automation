@@ -31,7 +31,7 @@ export function Mais() {
         </section>
       )}
       <p className="mutado" style={{ fontSize: 12, lineHeight: 1.5, margin: '0 4px' }}>
-        O telefone é usado no botão "Cobrar no WhatsApp" dos Acertos. Digite com DDD.
+        O telefone é usado no botão "Cobrar no WhatsApp" do Fechamento. Digite com DDD.
       </p>
 
       <ContasFixas />
@@ -72,7 +72,7 @@ function LinhaPessoa({ pessoa, primeira }: { pessoa: Pessoa; primeira: boolean }
       setSalvo(novo);
       setTexto(novo ? telefoneLegivel(novo) : '');
       setEstado('salvo');
-      dadosMudaram();   // botão do WhatsApp nos Acertos usa o telefone
+      dadosMudaram();   // botão do WhatsApp no Fechamento usa o telefone
     } catch (e) {
       setErro((e as Error).message);
       setEstado('');

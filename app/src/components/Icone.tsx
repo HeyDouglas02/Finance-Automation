@@ -11,6 +11,7 @@ const CAMINHOS = {
   seta: 'M9 6l6 6-6 6',
   atualizar: 'M20 11a8 8 0 10-2.3 5.7 M20 4v7h-7',
   baixo: 'M6 9l6 6 6-6',
+  certo: 'M5 12.5l4.5 4.5L19 7.5',
 } as const;
 
 export type NomeIcone = keyof typeof CAMINHOS;

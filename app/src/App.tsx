@@ -10,7 +10,7 @@ import { Mes } from './pages/Mes';
 import { Meses } from './pages/Meses';
 import { Transacoes } from './pages/Transacoes';
 import { Classificar } from './pages/Classificar';
-import { Acertos } from './pages/Acertos';
+import { Fechamento } from './pages/Fechamento';
 import { Mais } from './pages/Mais';
 import { Lancar } from './pages/Lancar';
 import { EditarLancamento } from './pages/EditarLancamento';
@@ -34,7 +34,7 @@ export function App() {
         <Route path="/classificar/:id" element={<Classificar />} />
         <Route path="/lancar" element={<Lancar />} />
         <Route path="/lancamento/:tipo/:id" element={<EditarLancamento />} />
-        <Route path="/acertos" element={<Acertos />} />
+        <Route path="/fechamento" element={<Fechamento />} />
         <Route path="/mais" element={<Mais />} />
       </Routes>
       <Ilha />

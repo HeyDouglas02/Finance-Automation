@@ -48,7 +48,7 @@ Cinco abas, cada uma responde uma pergunta:
 | **Mês** | Quanto ainda posso gastar? **Pode gastar** (já guardando a meta), quanto resta em cada categoria (Mercado, Comer fora, Lazer, Compras, Transporte e a reserva de Saúde + Imprevistos), fatura por cartão com conferência, a receber e parcelamentos com o teto |
 | **Transações** | Pra onde foi? Tudo do mês agrupado, com o filtro **Pendentes** pra classificar compras novas (de quem é + categoria) |
 | **Lançar** | Renda, débito (com divisão e parcelas) e gasolina |
-| **Acertos** | Quem me deve: itens por pessoa, cobrança pelo WhatsApp e "Recebi" |
+| **Fechamento** | O mês fecha? Entradas (renda e quem me deve, com cobrança pelo WhatsApp) com "Recebi", saídas (faturas, contas fixas e débitos) com "Paguei", sobra e quanto deveria ter na conta |
 | **Mais** | Status dos bancos, telefones, contas fixas, limites do mês (renda base, reserva, meta, teto de parcelas), sair |
 
 Um botão de olho esconde todos os valores.
@@ -76,7 +76,7 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 - [x] Modelo de dados
 - [x] Migração dos dados
 - [x] Sincronização como Edge Function (a cada 3h, via pg_cron)
-- [x] App: Mês, Transações (com classificação), Lançar, Acertos e Mais
+- [x] App: Mês, Transações (com classificação), Lançar, Fechamento e Mais
 - [x] Cobrança pelo WhatsApp (link `wa.me` com a mensagem pronta)
 - [x] Conferência de faturas e aviso de divergência
 - [x] PWA instalável e deploy (Vercel)
@@ -90,17 +90,6 @@ legacy/apps-script/    versão anterior, em Google Sheets + Apps Script
 - [ ] Notificações (a definir quais)
 - [ ] Baixa automática de pagamentos pela conta corrente (a avaliar)
 
-## Rodando localmente
-
-Requer [Supabase CLI](https://supabase.com/docs/guides/cli) e Docker.
-
-```bash
-supabase start      # sobe Postgres local
-supabase db reset   # aplica migrations + seed.sql (dados fictícios)
-
-cd app && cp .env.example .env && npm install && npm run dev
-```
-
 ## Privacidade
 
-Nenhum dado financeiro real, chave de API ou senha está neste repositório. Segredos ficam em `.env` (fora do Git) e dados pessoais em `supabase/local/` (também fora do Git).
+Nenhum dado financeiro real, chave de API ou senha está neste repositório. Para testes existe `supabase/seed.sql`, com dados fictícios. Segredos ficam em `.env` (fora do Git) e dados pessoais em `supabase/local/` (também fora do Git).

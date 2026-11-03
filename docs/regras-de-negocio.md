@@ -145,8 +145,9 @@ Renda base
 ## 18. Fechamento do mês
 
 - Uma tela por mês do orçamento, com duas listas: **Entradas** e **Saídas**.
-- **Entradas:** toda a renda do mês (regra 2) e o acerto de cada pessoa (regra 9). Cada linha tem **Recebi**. O Recebi do acerto é o mesmo da aba Acertos: marcar num lugar marca no outro.
+- **Entradas:** toda a renda do mês (regra 2) e o acerto de cada pessoa (regra 9). Cada linha tem **Recebi**. O Recebi do acerto é o mesmo da regra 9 (a aba Acertos virou o Fechamento).
 - **Saídas:** tudo que eu pago no começo do mês seguinte: cada fatura de cartão, cada conta fixa e cada débito do mês. Cada linha tem **Paguei**, marcado à mão.
 - As saídas entram pelo **valor cheio**, porque a parte dos outros já está nas entradas como acerto.
 - **Resumo:** falta receber, falta pagar e **sobra = entradas − saídas**.
+- **Deveria ter na conta** = o que já foi marcado como recebido − o que já foi marcado como pago. Serve para conferir com o saldo do banco ao longo do mês.
 - O mês está fechado quando tudo está marcado. Nada passa para o mês seguinte.

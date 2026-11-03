@@ -5,7 +5,7 @@ const ABAS: { rota: string; nome: string; icone: NomeIcone }[] = [
   { rota: '/', nome: 'Mês', icone: 'mes' },
   { rota: '/transacoes', nome: 'Transações', icone: 'transacoes' },
   { rota: '/lancar', nome: 'Lançar', icone: 'lancar' },
-  { rota: '/acertos', nome: 'Acertos', icone: 'acertos' },
+  { rota: '/fechamento', nome: 'Fechamento', icone: 'acertos' },
   { rota: '/mais', nome: 'Mais', icone: 'mais' },
 ];
 

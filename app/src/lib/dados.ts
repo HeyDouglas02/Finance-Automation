@@ -298,6 +298,36 @@ export async function desfazerPagamento(competencia: string, pessoaId: number): 
   if (error) throw error;
 }
 
+/** Uma linha do fechamento (regra 18). Acerto = linha com pessoaId (o Recebi dele fica em pagamentos). */
+export type LinhaFechamento = {
+  ref: string; descricao: string; valor: number; vencimento: string | null;
+  pessoaId: number | null; marcado: boolean; marcadoEm: string | null;
+};
+export type Fechamento = { entradas: LinhaFechamento[]; saidas: LinhaFechamento[] };
+
+export async function buscarFechamento(competencia: string): Promise<Fechamento> {
+  const { data, error } = await supabase.from('v_fechamento')
+    .select('lado, ref, descricao, valor, vencimento, pessoa_id, marcado, marcado_em').eq('competencia', competencia)
+    .order('vencimento', { nullsFirst: false }).order('valor', { ascending: false });
+  if (error) throw error;
+  const linhas = (data ?? []).map(l => ({
+    lado: l.lado, ref: l.ref, descricao: l.descricao, valor: num(l.valor), vencimento: l.vencimento,
+    pessoaId: l.pessoa_id, marcado: l.marcado, marcadoEm: l.marcado_em,
+  }));
+  return { entradas: linhas.filter(l => l.lado === 'Entrada'), saidas: linhas.filter(l => l.lado === 'Saída') };
+}
+
+/** Recebi (renda) ou Paguei (saída): grava a baixa do item. */
+export async function marcarBaixa(ref: string): Promise<void> {
+  const { error } = await supabase.from('baixas').insert({ ref, data: new Date().toLocaleDateString('sv-SE') });
+  if (error) throw error;
+}
+
+export async function desmarcarBaixa(ref: string): Promise<void> {
+  const { error } = await supabase.from('baixas').delete().eq('ref', ref);
+  if (error) throw error;
+}
+
 export type Pessoa = { id: number; nome: string; telefone: string | null };
 
 export async function buscarPessoas(): Promise<Pessoa[]> {

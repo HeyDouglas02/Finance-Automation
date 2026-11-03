@@ -3,54 +3,120 @@ import { useQuery } from '@tanstack/react-query';
 import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
-  buscarAcertos, buscarItensAcerto, desfazerPagamento, registrarPagamento,
-  type Acerto, type ItemAcerto,
+  buscarAcertos, buscarFechamento, buscarItensAcerto, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
+  type Acerto, type ItemAcerto, type LinhaFechamento,
 } from '../lib/dados';
-import { diaMesCurto, mesAtual, nomeMes, reais, somaMes } from '../lib/formato';
+import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, somaMes, venceOuVenceu } from '../lib/formato';
 import { SeletorMes } from '../components/SeletorMes';
 import { Icone } from '../components/Icone';
 import { TituloAba } from '../components/BotaoOlho';
 
-/** Aba Acertos: quem deve quanto no mês, cobrança pelo WhatsApp e "Recebi" (regra 9). */
-export function Acertos() {
+/**
+ * Aba Fechamento (regra 18): entradas do mês (renda + acertos) com Recebi e saídas
+ * (faturas, contas fixas no débito, débitos) com Paguei. Sobra = entradas − saídas.
+ * Sem mês na URL abre o mês anterior: as contas de um mês são pagas no começo do seguinte.
+ */
+export function Fechamento() {
   const [params] = useSearchParams();
-  const competencia = params.get('mes') ?? mesAtual();
+  const competencia = params.get('mes') ?? somaMes(mesAtual(), -1);
   const [aberta, setAberta] = useState<string | null>(null);
-  const consulta = useQuery({ queryKey: ['acertos', competencia], queryFn: () => buscarAcertos(competencia) });
-  const erro = consulta.error?.message ?? '';
-  const acertos: Acerto[] | null = consulta.data ?? (consulta.error ? [] : null);   // null = carregando
+  const consulta = useQuery({ queryKey: ['fechamento', competencia], queryFn: () => buscarFechamento(competencia) });
+  const consultaAcertos = useQuery({ queryKey: ['acertos', competencia], queryFn: () => buscarAcertos(competencia) });
+  const erro = consulta.error?.message ?? consultaAcertos.error?.message ?? '';
+  const fechamento = consulta.data ?? null;
+  const acertos: Acerto[] = consultaAcertos.data ?? [];
 
   useEffect(() => { setAberta(null); }, [competencia]);
 
-  const falta = (acertos ?? []).reduce((t, a) => t + (a.pago ? 0 : a.falta), 0);
-  const mesCobranca = nomeMes(somaMes(competencia, 1)).split(' ')[0].toLowerCase();
+  const soma = (linhas: LinhaFechamento[]) => linhas.reduce((t, l) => t + l.valor, 0);
+  const rendas = fechamento?.entradas.filter(l => l.pessoaId === null) ?? [];
+  const faltaReceber = soma(fechamento?.entradas.filter(l => !l.marcado) ?? []);
+  const faltaPagar = soma(fechamento?.saidas.filter(l => !l.marcado) ?? []);
+  const sobra = soma(fechamento?.entradas ?? []) - soma(fechamento?.saidas ?? []);
+  // conferência com o banco: o que já entrou menos o que já saiu
+  const naConta = soma(fechamento?.entradas.filter(l => l.marcado) ?? []) - soma(fechamento?.saidas.filter(l => l.marcado) ?? []);
 
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <TituloAba>Acertos</TituloAba>
-      <SeletorMes competencia={competencia} rota="/acertos" />
+      <TituloAba>Fechamento</TituloAba>
+      <SeletorMes competencia={competencia} rota="/fechamento" />
 
       {erro && <div role="alert" style={{ color: 'var(--negativo)' }}>Erro: {erro}</div>}
-      {acertos === null && <div className="mutado">Carregando…</div>}
+      {!fechamento && !erro && <div className="mutado">Carregando…</div>}
 
-      {acertos && !erro && (
-        <section className="vidro" style={{ padding: '16px 18px' }}>
-          <div className="mutado" style={{ fontSize: 14 }}>Cobrança em {mesCobranca}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: falta > 0 ? 'var(--texto)' : 'var(--positivo)' }}>
-            {falta > 0 ? `R$ ${reais(falta)}` : 'Tudo recebido'}
-          </div>
-          {falta > 0 && <div className="mutado" style={{ fontSize: 13, marginTop: 2 }}>ainda falta receber</div>}
-        </section>
+      {fechamento && !erro && (
+        <>
+          <section className="vidro" style={{ padding: '16px 18px' }}>
+            <div className="mutado" style={{ fontSize: 14 }}>Sobra de {nomeMes(competencia).split(' ')[0].toLowerCase()}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: sobra < 0 ? 'var(--negativo)' : 'var(--texto)' }}>
+              {reaisComSinal(sobra)}
+            </div>
+            <div className="mutado" style={{ fontSize: 13, marginTop: 2 }}>
+              {faltaReceber < 0.01 && faltaPagar < 0.01 ? 'Mês fechado: tudo recebido e pago'
+                : `Falta receber R$ ${reais(faltaReceber)} · falta pagar R$ ${reais(faltaPagar)}`}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginTop: 12, paddingTop: 12,
+              borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <span style={{ fontSize: 14 }}>Deveria ter na conta</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: naConta < 0 ? 'var(--negativo)' : 'var(--texto)' }}>{reaisComSinal(naConta)}</span>
+            </div>
+            <div className="mutado" style={{ fontSize: 12, marginTop: 2 }}>o que você marcou como recebido menos o que marcou como pago</div>
+          </section>
+
+          <h2 style={{ fontSize: 16, fontWeight: 600, margin: '8px 4px 0' }}>Entradas</h2>
+          {rendas.map(l => <LinhaBaixa key={l.ref} linha={l} acao="Recebi" />)}
+          {acertos.map(a => (
+            <CartaoPessoa key={competencia + a.pessoa} acerto={a} competencia={competencia}
+              aberta={aberta === a.pessoa} alternar={() => setAberta(aberta === a.pessoa ? null : a.pessoa)}
+              mudou={dadosMudaram} />
+          ))}
+          {!rendas.length && !acertos.length && <div className="mutado" style={{ padding: '0 4px' }}>Nenhuma entrada neste mês.</div>}
+
+          <h2 style={{ fontSize: 16, fontWeight: 600, margin: '8px 4px 0' }}>Saídas</h2>
+          {fechamento.saidas.map(l => <LinhaBaixa key={l.ref} linha={l} acao="Paguei" />)}
+          {!fechamento.saidas.length && <div className="mutado" style={{ padding: '0 4px' }}>Nenhuma saída neste mês.</div>}
+        </>
       )}
-
-      {acertos?.length === 0 && !erro && <div className="mutado" style={{ padding: '0 4px' }}>Ninguém te deve nada neste mês.</div>}
-
-      {acertos?.map(a => (
-        <CartaoPessoa key={competencia + a.pessoa} acerto={a} competencia={competencia}
-          aberta={aberta === a.pessoa} alternar={() => setAberta(aberta === a.pessoa ? null : a.pessoa)}
-          mudou={dadosMudaram} />
-      ))}
     </main>
+  );
+}
+
+/** Renda ou saída: toque em Recebi/Paguei marca; toque no ✓ desmarca. */
+function LinhaBaixa({ linha: l, acao }: { linha: LinhaFechamento; acao: 'Recebi' | 'Paguei' }) {
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+
+  const alternar = async () => {
+    setSalvando(true);
+    setErro('');
+    try { await (l.marcado ? desmarcarBaixa(l.ref) : marcarBaixa(l.ref)); dadosMudaram(); } catch (e) { setErro((e as Error).message); }
+    setSalvando(false);
+  };
+
+  const rodape = l.marcado && l.marcadoEm ? `${acao === 'Recebi' ? 'Recebido' : 'Pago'} em ${diaMesCurto(l.marcadoEm)}`
+    : l.vencimento ? `${venceOuVenceu(l.vencimento)} ${diaMesCurto(l.vencimento)}` : null;
+
+  return (
+    <section className="vidro" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 16, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.descricao}</span>
+        {rodape && <span className="mutado" style={{ display: 'block', fontSize: 13, marginTop: 2 }}>{rodape}</span>}
+        {erro && <span role="alert" style={{ display: 'block', color: 'var(--negativo)', fontSize: 13, marginTop: 2 }}>{erro}</span>}
+      </span>
+      <span style={{ flexShrink: 0, fontSize: 16, fontWeight: 700 }}>R$ {reais(l.valor)}</span>
+      {l.marcado ? (
+        <button onClick={alternar} disabled={salvando} aria-label={`Desfazer ${acao}`}
+          style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(143,207,158,0.16)' }}>
+          <Icone nome="certo" tamanho={20} cor="var(--positivo)" />
+        </button>
+      ) : (
+        <button className="pilula" onClick={alternar} disabled={salvando}
+          style={{ height: 44, padding: '0 14px', flexShrink: 0, fontSize: 14, fontWeight: 600 }}>
+          {salvando ? '…' : acao}
+        </button>
+      )}
+    </section>
   );
 }
 

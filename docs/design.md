@@ -22,8 +22,8 @@ Abas (ilha flutuante), cada uma responde uma pergunta:
 |---|---|
 | **Mês** | Quanto ainda posso gastar? Mês aberto: **Pode gastar** (soma do que resta nos limites, já guardando a meta); mês que passou: **Saldo do mês**. Tocar abre o resumo (renda − cada cartão − fixas − débitos − gasolina). Fatura por cartão, a receber, ritmo, categorias (quanto resta em cada grupo e na reserva) e parcelamentos com o teto |
 | **Transações** | Pra onde foi? Tudo do mês agrupado como no resumo do saldo, com filtro **Pendentes**: compras novas a classificar (de quem é, categoria) |
-| **Lançar** | Registrar renda, débito ou gasolina (pagamento recebido é o "Recebi" dos Acertos), com a lista do que já foi lançado no mês. Tocar num lançamento (aqui ou em Transações) abre **Corrigir**: mesmo formulário, preenchido, com Salvar e Excluir |
-| **Acertos** | Quem me deve e quanto |
+| **Lançar** | Registrar renda, débito ou gasolina (pagamento recebido é o "Recebi" do Fechamento), com a lista do que já foi lançado no mês. Tocar num lançamento (aqui ou em Transações) abre **Corrigir**: mesmo formulário, preenchido, com Salvar e Excluir |
+| **Fechamento** | O mês fecha? Entradas (renda e acertos de cada pessoa) com Recebi, saídas (faturas, contas fixas no débito e débitos) com Paguei, sobra e "deveria ter na conta" (regra 18). Abre no mês anterior, que é o que está sendo pago. Substituiu a aba Acertos |
 | **Mais** | Status dos bancos (quando o Meu Pluggy atualizou e quando o app leu), telefones das pessoas, contas fixas (criar, mudar valor, encerrar), limites do mês em reais por grupo mais renda base, reserva, meta e teto (com a conta "o orçamento fecha"), sair |
 
 A antiga aba Revisar virou o filtro Pendentes dentro de Transações (eram duas listas de compras quase iguais). As linhas do resumo do saldo abrem Transações já filtrada.
