@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
-  buscarAcertos, buscarFechamento, buscarItensAcerto, buscarItensOrigem, buscarPerfil, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
+  buscarAcertos, buscarFechamento, buscarExportacao, buscarItensAcerto, buscarItensOrigem, buscarPerfil, linkImportar, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
   type Acerto, type ItemAcerto, type LinhaFechamento,
 } from '../lib/dados';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, somaMes, venceOuVenceu } from '../lib/formato';
@@ -231,7 +231,16 @@ function CartaoPessoa({ acerto: a, competencia, aberta, alternar, mudou }: {
 
 /** Abre o WhatsApp da pessoa com a cobrança escrita (o envio é com você). */
 function BotaoWhatsApp({ acerto: a, itens, competencia }: { acerto: Acerto; itens: ItemAcerto[] | null; competencia: string }) {
-  const pix = useQuery({ queryKey: ['perfil'], queryFn: buscarPerfil }).data?.chavePix;
+  const perfil = useQuery({ queryKey: ['perfil'], queryFn: buscarPerfil }).data;
+  const pix = perfil?.chavePix;
+  // regra 23: quem tem o endereço do app recebe o link para importar o mês (precisa do seu nome no Perfil)
+  const exportar = !!a.appUrl && !!perfil?.nome;
+  const pacote = useQuery({
+    queryKey: ['exportacao', competencia, a.pessoa], queryFn: () => buscarExportacao(competencia, a.pessoa), enabled: exportar,
+  }).data;
+  const link = exportar && pacote
+    ? linkImportar(a.appUrl!, { v: 1, de: { nome: perfil!.nome!, app: window.location.host }, mes: competencia, itens: pacote })
+    : null;
   if (!a.telefone) {
     return <span className="mutado" style={{ flex: 1, fontSize: 12, alignSelf: 'center', lineHeight: 1.4 }}>Sem telefone cadastrado</span>;
   }
@@ -242,12 +251,14 @@ function BotaoWhatsApp({ acerto: a, itens, competencia }: { acerto: Acerto; iten
     '',
     `Total: R$ ${reais(a.falta)}`,
     ...(pix ? [`Pix: ${pix}`] : []),
+    ...(link ? ['', 'Para importar no seu app:', link] : []),
   ].join('\n');
+  const pronto = !!itens && (!exportar || !!link);
   return (
     <a href={`https://wa.me/${a.telefone}?text=${encodeURIComponent(mensagem)}`} target="_blank" rel="noreferrer"
-      className="pilula" aria-disabled={!itens}
+      className="pilula" aria-disabled={!pronto}
       style={{ flex: 1, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        fontSize: 15, fontWeight: 600, color: 'var(--texto)', textDecoration: 'none', pointerEvents: itens ? 'auto' : 'none' }}>
+        fontSize: 15, fontWeight: 600, color: 'var(--texto)', textDecoration: 'none', pointerEvents: pronto ? 'auto' : 'none' }}>
       Cobrar no WhatsApp
     </a>
   );

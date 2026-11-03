@@ -261,7 +261,7 @@ export async function classificar(id: string, categoriaId: number, rateios: Rate
 }
 
 export type Acerto = {
-  pessoaId: number; pessoa: string; telefone: string | null;
+  pessoaId: number; pessoa: string; telefone: string | null; appUrl: string | null;
   devido: number; falta: number; itens: number; pago: boolean; ultimoPagamento: string | null;
 };
 export type ItemAcerto = { descricao: string; valor: number; previsto: boolean; categoria?: string | null };
@@ -271,14 +271,14 @@ export async function buscarAcertos(competencia: string): Promise<Acerto[]> {
   const [a, p] = await Promise.all([
     supabase.from('v_acertos').select('pessoa, devido, falta, itens, situacao, ultimo_pagamento')
       .eq('competencia', competencia).gt('devido', 0.009),
-    supabase.from('pessoas').select('id, nome, telefone'),
+    supabase.from('pessoas').select('id, nome, telefone, app_url'),
   ]);
   if (a.error) throw a.error;
   if (p.error) throw p.error;
   return (a.data ?? []).map(x => {
     const pessoa = (p.data ?? []).find(q => q.nome === x.pessoa);
     return {
-      pessoaId: pessoa?.id ?? 0, pessoa: x.pessoa, telefone: pessoa?.telefone ?? null,
+      pessoaId: pessoa?.id ?? 0, pessoa: x.pessoa, telefone: pessoa?.telefone ?? null, appUrl: pessoa?.app_url ?? null,
       devido: num(x.devido), falta: num(x.falta), itens: x.itens, pago: x.situacao === 'Pago', ultimoPagamento: x.ultimo_pagamento,
     };
   }).sort((x, y) => Number(x.pago) - Number(y.pago) || x.pessoa.localeCompare(y.pessoa, 'pt-BR'));   // pendentes primeiro
@@ -322,15 +322,21 @@ export async function buscarFechamento(competencia: string): Promise<Fechamento>
   return { entradas: linhas.filter(l => l.lado === 'Entrada'), saidas: linhas.filter(l => l.lado === 'Saída') };
 }
 
-/** O que está dentro de uma saída "Pagar <origem>" (regra 18): os débitos daquela origem no mês. */
+/** O que está dentro de uma saída "Pagar <origem>" (regras 18 e 23): débitos com "Pagar para" e compras importadas. */
 export async function buscarItensOrigem(competencia: string, origem: string): Promise<ItemAcerto[]> {
   const d = await supabase.from('debitos').select('id').eq('origem', origem);
   if (d.error) throw d.error;
-  const { data, error } = await supabase.from('v_itens').select('descricao, valor, categoria')
-    .eq('competencia', competencia).eq('tipo', 'Débito').in('src_debito', (d.data ?? []).map(x => x.id))
-    .order('valor', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map(i => ({ descricao: i.descricao, valor: num(i.valor), previsto: false, categoria: i.categoria }));
+  const [deb, imp] = await Promise.all([
+    supabase.from('v_itens').select('descricao, valor, categoria, status')
+      .eq('competencia', competencia).eq('tipo', 'Débito').in('src_debito', (d.data ?? []).map(x => x.id)),
+    supabase.from('v_itens').select('descricao, valor, categoria, status')
+      .eq('competencia', competencia).eq('origem', origem).like('ref', 'imp:%'),
+  ]);
+  if (deb.error) throw deb.error;
+  if (imp.error) throw imp.error;
+  return [...(deb.data ?? []), ...(imp.data ?? [])]
+    .map(i => ({ descricao: i.descricao, valor: num(i.valor), previsto: i.status === 'Previsto', categoria: i.categoria }))
+    .sort((a, b) => b.valor - a.valor);
 }
 
 /** Recebi (renda) ou Paguei (saída): grava a baixa do item. */
@@ -344,12 +350,12 @@ export async function desmarcarBaixa(ref: string): Promise<void> {
   if (error) throw error;
 }
 
-export type Pessoa = { id: number; nome: string; telefone: string | null; arquivada: boolean };
+export type Pessoa = { id: number; nome: string; telefone: string | null; arquivada: boolean; appUrl: string | null };
 
 export async function buscarPessoas(): Promise<Pessoa[]> {
-  const { data, error } = await supabase.from('pessoas').select('id, nome, telefone, arquivada').order('nome');
+  const { data, error } = await supabase.from('pessoas').select('id, nome, telefone, arquivada, app_url').order('nome');
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(p => ({ id: p.id, nome: p.nome, telefone: p.telefone, arquivada: p.arquivada, appUrl: p.app_url }));
 }
 
 /** Telefone só com dígitos, DDI 55 na frente se faltar ("(41) 99999-8888" → "5541999998888"). Vazio = null. */
@@ -362,17 +368,25 @@ export function normalizarTelefone(digitado: string): string | null {
 export const mesmoNome = (a: string, b: string) => a.trim().toLocaleLowerCase('pt-BR') === b.trim().toLocaleLowerCase('pt-BR');
 
 /** Regra 19: incluir. Nome repetido é tratado na tela (oferece restaurar a arquivada). */
-export async function criarPessoa(nome: string, telefoneDigitado: string): Promise<void> {
+/** Endereço do app de uma pessoa (regra 23): "https://finance-duda.vercel.app/" → "finance-duda.vercel.app". Vazio = null. */
+export function normalizarAppUrl(digitado: string): string | null {
+  const t = digitado.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  if (!t) return null;
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(t)) throw new Error('Endereço do app inválido (ex.: finance-duda.vercel.app)');
+  return t;
+}
+
+export async function criarPessoa(nome: string, telefoneDigitado: string, appDigitado = ''): Promise<void> {
   const telefone = normalizarTelefone(telefoneDigitado);
   if (telefone && !/^\d{12,13}$/.test(telefone)) throw new Error('Número inválido: use DDD + número');
-  const { error } = await supabase.from('pessoas').insert({ nome: nome.trim(), telefone });
+  const { error } = await supabase.from('pessoas').insert({ nome: nome.trim(), telefone, app_url: normalizarAppUrl(appDigitado) });
   if (error) throw error;
 }
 
-export async function editarPessoa(id: number, nome: string, telefoneDigitado: string): Promise<void> {
+export async function editarPessoa(id: number, nome: string, telefoneDigitado: string, appDigitado: string): Promise<void> {
   const telefone = normalizarTelefone(telefoneDigitado);
   if (telefone && !/^\d{12,13}$/.test(telefone)) throw new Error('Número inválido: use DDD + número');
-  const { error } = await supabase.from('pessoas').update({ nome: nome.trim(), telefone }).eq('id', id);
+  const { error } = await supabase.from('pessoas').update({ nome: nome.trim(), telefone, app_url: normalizarAppUrl(appDigitado) }).eq('id', id);
   if (error) throw error;
 }
 
@@ -640,5 +654,64 @@ export async function buscarPerfil(): Promise<Perfil> {
 
 export async function salvarPerfil(nome: string, chavePix: string): Promise<void> {
   const { error } = await supabase.from('configuracoes').update({ nome: nome.trim() || null, chave_pix: chavePix.trim() || null }).eq('id', 1);
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------
+// Exportar e importar entre apps (regra 23)
+// ---------------------------------------------------------------------
+
+/** Item do pacote, curto para caber no link: [descrição, valor, categoria, data, parcela, de quantas]. */
+export type ItemPacote = [string, number, string | null, string | null, number | null, number | null];
+export type Pacote = { v: 1; de: { nome: string; app: string }; mes: string; itens: ItemPacote[] };
+
+/** O mês de uma pessoa para exportar: a parte dela em cada item, com categoria, data e parcela. */
+export async function buscarExportacao(competencia: string, pessoa: string): Promise<ItemPacote[]> {
+  const p = await supabase.from('v_partes').select('ref, descricao, valor').eq('competencia', competencia).eq('pessoa', pessoa);
+  if (p.error) throw p.error;
+  const refs = (p.data ?? []).map(x => x.ref);
+  const i = refs.length ? await supabase.from('v_itens').select('ref, categoria, data').in('ref', refs) : { data: [], error: null };
+  if (i.error) throw i.error;
+  return (p.data ?? []).map(x => {
+    const item = (i.data ?? []).find(y => y.ref === x.ref);
+    // parcela vem na descrição: "Compra 1/3" (cartão) ou "Compra (1 de 3)" (débito)
+    const m = x.descricao.match(/^(.*) (\d+)\/(\d+)$/) ?? x.descricao.match(/^(.*) \((\d+) de (\d+)\)$/);
+    return [m ? m[1] : x.descricao, num(x.valor), item?.categoria ?? null, item?.data ?? null,
+      m ? Number(m[2]) : null, m ? Number(m[3]) : null] as ItemPacote;
+  });
+}
+
+// o pacote vai no fim do link (#...): texto → UTF-8 → base64 sem "+", "/" e "=" (que quebram em link)
+const paraBase64Url = (texto: string) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(texto))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const deBase64Url = (b: string) =>
+  new TextDecoder().decode(Uint8Array.from(atob(b.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+
+export function linkImportar(appUrl: string, pacote: Pacote): string {
+  return `https://${appUrl}/importar#${paraBase64Url(JSON.stringify(pacote))}`;
+}
+
+/** Lê o pacote do link; erro se não for um pacote válido. */
+export function lerPacote(hash: string): Pacote {
+  let p: Pacote;
+  try { p = JSON.parse(deBase64Url(hash.replace(/^#/, ''))); } catch { throw new Error('Link de importar inválido ou incompleto.'); }
+  if (p?.v !== 1 || !p.de?.nome || !/^\d{4}-\d{2}-01$/.test(p.mes ?? '') || !Array.isArray(p.itens)) {
+    throw new Error('Link de importar inválido ou incompleto.');
+  }
+  return p;
+}
+
+/** Importa o mês: substitui o que havia daquele mês daquela pessoa (função importar no banco). */
+export async function importarMes(origem: string, competencia: string, itens: {
+  descricao: string; valor: number; categoria_id: number | null; data: string | null; parcela_num: number | null; parcela_total: number | null;
+}[]): Promise<number> {
+  const { data, error } = await supabase.rpc('importar', { p_origem: origem, p_competencia: competencia, p_itens: itens });
+  if (error) throw error;
+  return data as number;
+}
+
+/** Guarda o endereço do app de quem mandou, para reconhecer nas próximas importações. */
+export async function lembrarAppDaPessoa(id: number, appUrl: string): Promise<void> {
+  const { error } = await supabase.from('pessoas').update({ app_url: appUrl }).eq('id', id);
   if (error) throw error;
 }

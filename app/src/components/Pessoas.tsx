@@ -61,6 +61,7 @@ function LinhaPessoa({ pessoa: p, todas, primeira, aberta, alternar }: {
 }) {
   const [nome, setNome] = useState(p.nome);
   const [telefone, setTelefone] = useState(p.telefone ? telefoneLegivel(p.telefone) : '');
+  const [app, setApp] = useState(p.appUrl ?? '');
   const [arquivando, setArquivando] = useState(false);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -79,14 +80,16 @@ function LinhaPessoa({ pessoa: p, todas, primeira, aberta, alternar }: {
       <button onClick={alternar} aria-expanded={aberta} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>{p.nome}</span>
-          <span className="mutado" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{p.telefone ? telefoneLegivel(p.telefone) : 'Sem telefone'}</span>
+          <span className="mutado" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
+            {[p.telefone ? telefoneLegivel(p.telefone) : 'Sem telefone', p.appUrl].filter(Boolean).join(' · ')}
+          </span>
         </span>
         <span style={{ display: 'flex', transform: aberta ? 'rotate(180deg)' : 'none' }}><Icone nome="baixo" tamanho={14} cor="#C9C2B7" /></span>
       </button>
 
       {aberta && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <CamposPessoa id={`p${p.id}`} nome={nome} setNome={setNome} telefone={telefone} setTelefone={setTelefone} />
+          <CamposPessoa id={`p${p.id}`} nome={nome} setNome={setNome} telefone={telefone} setTelefone={setTelefone} app={app} setApp={setApp} />
           {repetida && <div style={{ color: 'var(--negativo)', fontSize: 13 }}>Já existe {repetida.arquivada ? 'uma pessoa arquivada' : 'outra pessoa'} com esse nome.</div>}
           {erro && <div role="alert" style={{ color: 'var(--negativo)', fontSize: 13 }}>{erro}</div>}
           {arquivando ? (
@@ -99,7 +102,7 @@ function LinhaPessoa({ pessoa: p, todas, primeira, aberta, alternar }: {
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="pilula" onClick={() => setArquivando(true)} style={{ flex: 1, height: 44, fontSize: 14 }}>Arquivar</button>
               <button className="botao-mel" disabled={salvando || !nome.trim() || !!repetida}
-                onClick={() => executar(() => editarPessoa(p.id, nome, telefone))}
+                onClick={() => executar(() => editarPessoa(p.id, nome, telefone, app))}
                 style={{ flex: 1, height: 44, fontSize: 14 }}>{salvando ? 'Salvando…' : 'Salvar'}</button>
             </div>
           )}
@@ -112,6 +115,7 @@ function LinhaPessoa({ pessoa: p, todas, primeira, aberta, alternar }: {
 function NovaPessoa({ todas, fechar }: { todas: Pessoa[]; fechar: () => void }) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [app, setApp] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
 
@@ -125,7 +129,7 @@ function NovaPessoa({ todas, fechar }: { todas: Pessoa[]; fechar: () => void }) 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <CamposPessoa id="nova-pessoa" nome={nome} setNome={setNome} telefone={telefone} setTelefone={setTelefone} />
+      <CamposPessoa id="nova-pessoa" nome={nome} setNome={setNome} telefone={telefone} setTelefone={setTelefone} app={app} setApp={setApp} />
       {/* nome de uma arquivada: restaura a mesma pessoa, para o histórico não se dividir em duas */}
       {repetida && (repetida.arquivada ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
@@ -138,25 +142,31 @@ function NovaPessoa({ todas, fechar }: { todas: Pessoa[]; fechar: () => void }) 
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="pilula" onClick={fechar} style={{ flex: 1, height: 44, fontSize: 14 }}>Cancelar</button>
         <button className="botao-mel" disabled={salvando || !nome.trim() || !!repetida}
-          onClick={() => executar(() => criarPessoa(nome, telefone))}
+          onClick={() => executar(() => criarPessoa(nome, telefone, app))}
           style={{ flex: 1, height: 44, fontSize: 14 }}>{salvando ? 'Salvando…' : 'Adicionar'}</button>
       </div>
     </div>
   );
 }
 
-function CamposPessoa({ id, nome, setNome, telefone, setTelefone }: {
+function CamposPessoa({ id, nome, setNome, telefone, setTelefone, app, setApp }: {
   id: string; nome: string; setNome: (t: string) => void; telefone: string; setTelefone: (t: string) => void;
+  app: string; setApp: (t: string) => void;
 }) {
   const campo = { className: 'pilula', style: { height: 40, padding: '0 12px', fontSize: 15, width: '100%' } };
-  return (
+  return <>
     <div style={{ display: 'flex', gap: 8 }}>
       <Rotulado id={`${id}-nome`} rotulo="Nome"><input id={`${id}-nome`} placeholder="Ex.: Duda" value={nome} onChange={e => setNome(e.target.value)} {...campo} /></Rotulado>
       <Rotulado id={`${id}-tel`} rotulo="Telefone (opcional)">
         <input id={`${id}-tel`} type="tel" inputMode="tel" placeholder="(41) 99999-8888" value={telefone} onChange={e => setTelefone(e.target.value)} {...campo} />
       </Rotulado>
     </div>
-  );
+    {/* regra 23: com o endereço, a cobrança leva o link para a pessoa importar no app dela */}
+    <Rotulado id={`${id}-app`} rotulo="Endereço do app dela (opcional)">
+      <input id={`${id}-app`} placeholder="finance-duda.vercel.app" value={app} onChange={e => setApp(e.target.value)}
+        autoCapitalize="off" autoCorrect="off" spellCheck={false} {...campo} />
+    </Rotulado>
+  </>;
 }
 
 function BotaoAcao({ rotulo, acao }: { rotulo: string; acao: () => Promise<void> }) {

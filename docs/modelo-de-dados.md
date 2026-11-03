@@ -48,6 +48,7 @@ erDiagram
 | `debitos` | Manual (avulso ou parcelado); `origem` = de quem veio, quando outra pessoa pagou por mim |
 | `abastecimentos` | Manual (cartões não conectados) |
 | `pagamentos` | Manual (acertos recebidos) |
+| `importados` | Compras que outra pessoa pagou por mim, importadas do app dela por link (regra 23); importar um mês substitui aquele mês |
 | `baixas` | Manual (Recebi da renda e Paguei das saídas no fechamento, pela `ref` do item) |
 | `rateios` | Parte de cada pessoa em uma transação, débito ou abastecimento |
 
@@ -78,6 +79,7 @@ erDiagram
 | `v_lancamentos` | Tudo junto, com mês, tipo, valor, parte do dono e status (real, previsto, esperado, manual) |
 | `v_mes` | Renda, saídas por grupo e sobra de cada mês |
 | `v_acertos` | Devido e pago por pessoa e mês |
+| `v_itens` (importados) | As importadas entram como compra ou parcela, com as seguintes previstas; origem = a pessoa |
 | `v_fechamento` | Entradas e saídas do mês para o fechamento (regra 18), com o que já foi marcado |
 | `v_categorias_mes` | Sua parte gasta em cada categoria, por mês, com o grupo |
 | `v_orcamento_base` | Cada mês com orçamento × cada grupo: limite e gasto (base das duas seguintes) |
