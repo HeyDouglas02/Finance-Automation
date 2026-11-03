@@ -259,7 +259,7 @@ export type Acerto = {
   pessoaId: number; pessoa: string; telefone: string | null;
   devido: number; falta: number; itens: number; pago: boolean; ultimoPagamento: string | null;
 };
-export type ItemAcerto = { descricao: string; valor: number; previsto: boolean };
+export type ItemAcerto = { descricao: string; valor: number; previsto: boolean; categoria?: string | null };
 
 /** Quanto cada pessoa deve no mês e se já pagou (regra 9). */
 export async function buscarAcertos(competencia: string): Promise<Acerto[]> {
@@ -315,6 +315,17 @@ export async function buscarFechamento(competencia: string): Promise<Fechamento>
     pessoaId: l.pessoa_id, marcado: l.marcado, marcadoEm: l.marcado_em,
   }));
   return { entradas: linhas.filter(l => l.lado === 'Entrada'), saidas: linhas.filter(l => l.lado === 'Saída') };
+}
+
+/** O que está dentro de uma saída "Pagar <origem>" (regra 18): os débitos daquela origem no mês. */
+export async function buscarItensOrigem(competencia: string, origem: string): Promise<ItemAcerto[]> {
+  const d = await supabase.from('debitos').select('id').eq('origem', origem);
+  if (d.error) throw d.error;
+  const { data, error } = await supabase.from('v_itens').select('descricao, valor, categoria')
+    .eq('competencia', competencia).eq('tipo', 'Débito').in('src_debito', (d.data ?? []).map(x => x.id))
+    .order('valor', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(i => ({ descricao: i.descricao, valor: num(i.valor), previsto: false, categoria: i.categoria }));
 }
 
 /** Recebi (renda) ou Paguei (saída): grava a baixa do item. */

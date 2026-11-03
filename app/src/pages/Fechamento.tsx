@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
-  buscarAcertos, buscarChavePix, buscarFechamento, buscarItensAcerto, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
+  buscarAcertos, buscarChavePix, buscarFechamento, buscarItensAcerto, buscarItensOrigem, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
   type Acerto, type ItemAcerto, type LinhaFechamento,
 } from '../lib/dados';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, somaMes, venceOuVenceu } from '../lib/formato';
@@ -85,6 +85,13 @@ export function Fechamento() {
 function LinhaBaixa({ linha: l, acao }: { linha: LinhaFechamento; acao: 'Recebi' | 'Paguei' }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  const [aberta, setAberta] = useState(false);
+  // "Pagar <origem>" junta débitos de outra pessoa: tocar no nome mostra os itens (ref = origem:<nome>:<mês>)
+  const origem = l.ref.startsWith('origem:') ? l.ref.slice(7, l.ref.lastIndexOf(':')) : null;
+  const competencia = l.ref.slice(l.ref.lastIndexOf(':') + 1) + '-01';
+  const itens = useQuery({
+    queryKey: ['itensOrigem', competencia, origem], queryFn: () => buscarItensOrigem(competencia, origem!), enabled: aberta && !!origem,
+  }).data ?? null;
 
   const alternar = async () => {
     setSalvando(true);
@@ -96,13 +103,21 @@ function LinhaBaixa({ linha: l, acao }: { linha: LinhaFechamento; acao: 'Recebi'
   const rodape = l.marcado && l.marcadoEm ? `${acao === 'Recebi' ? 'Recebido' : 'Pago'} em ${diaMesCurto(l.marcadoEm)}`
     : l.vencimento ? `${venceOuVenceu(l.vencimento)} ${diaMesCurto(l.vencimento)}` : null;
 
+  const nome = <>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 600 }}>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.descricao}</span>
+      {origem && <span style={{ display: 'flex', flexShrink: 0, transform: aberta ? 'rotate(180deg)' : 'none' }}><Icone nome="baixo" tamanho={14} cor="#C9C2B7" /></span>}
+    </span>
+    {rodape && <span className="mutado" style={{ display: 'block', fontSize: 13, marginTop: 2 }}>{rodape}</span>}
+    {erro && <span role="alert" style={{ display: 'block', color: 'var(--negativo)', fontSize: 13, marginTop: 2 }}>{erro}</span>}
+  </>;
+
   return (
-    <section className="vidro" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 16, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.descricao}</span>
-        {rodape && <span className="mutado" style={{ display: 'block', fontSize: 13, marginTop: 2 }}>{rodape}</span>}
-        {erro && <span role="alert" style={{ display: 'block', color: 'var(--negativo)', fontSize: 13, marginTop: 2 }}>{erro}</span>}
-      </span>
+    <section className="vidro" style={{ padding: '12px 16px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {origem
+        ? <button onClick={() => setAberta(!aberta)} aria-expanded={aberta} style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>{nome}</button>
+        : <span style={{ flex: 1, minWidth: 0 }}>{nome}</span>}
       <span style={{ flexShrink: 0, fontSize: 16, fontWeight: 700 }}>R$ {reais(l.valor)}</span>
       {l.marcado ? (
         <button onClick={alternar} disabled={salvando} aria-label={`Desfazer ${acao}`}
@@ -116,6 +131,21 @@ function LinhaBaixa({ linha: l, acao }: { linha: LinhaFechamento; acao: 'Recebi'
           {salvando ? '…' : acao}
         </button>
       )}
+    </div>
+    {aberta && (
+      <div style={{ marginTop: 10 }}>
+        {itens === null && <div className="mutado" style={{ fontSize: 13 }}>Carregando…</div>}
+        {itens?.map((i, k) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 0',
+            borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 14 }}>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {i.descricao}{i.categoria ? <span className="mutado"> · {i.categoria}</span> : null}
+            </span>
+            <span style={{ flexShrink: 0, fontWeight: 600 }}>R$ {reais(i.valor)}</span>
+          </div>
+        ))}
+      </div>
+    )}
     </section>
   );
 }
