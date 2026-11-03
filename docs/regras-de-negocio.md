@@ -141,3 +141,12 @@ Renda base
 - Só avisa, não bloqueia.
 - O limite da categoria olha o mês atual; o teto olha os meses seguintes. A mesma parcela aparece nos dois, mas sai do saldo uma vez só.
 - Mostra quanto ainda cabe de parcela nova em cada um dos próximos meses.
+
+## 18. Fechamento do mês
+
+- Uma tela por mês do orçamento, com duas listas: **Entradas** e **Saídas**.
+- **Entradas:** toda a renda do mês (regra 2) e o acerto de cada pessoa (regra 9). Cada linha tem **Recebi**. O Recebi do acerto é o mesmo da aba Acertos: marcar num lugar marca no outro.
+- **Saídas:** tudo que eu pago no começo do mês seguinte: cada fatura de cartão, cada conta fixa e cada débito do mês. Cada linha tem **Paguei**, marcado à mão.
+- As saídas entram pelo **valor cheio**, porque a parte dos outros já está nas entradas como acerto.
+- **Resumo:** falta receber, falta pagar e **sobra = entradas − saídas**.
+- O mês está fechado quando tudo está marcado. Nada passa para o mês seguinte.
