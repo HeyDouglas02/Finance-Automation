@@ -125,12 +125,12 @@ export function FormDebito({ competencia, salvou, editando }: { competencia: str
       </div>
     )}
 
-    <Titulo>Quem pagou?</Titulo>
+    {/* opcional: tocar marca, tocar de novo desmarca; vazio = débito comum */}
+    <Titulo>Pagar para (opcional)</Titulo>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-      <Chip ativo={origem === null} onClick={() => setOrigem(null)}>Eu</Chip>
-      {pagantes.map(nome => <Chip key={nome} ativo={origem === nome} onClick={() => setOrigem(nome)}>{nome}</Chip>)}
+      {pagantes.map(nome => <Chip key={nome} ativo={origem === nome} onClick={() => setOrigem(origem === nome ? null : nome)}>{nome}</Chip>)}
     </div>
-    {origem && <div className="mutado" style={{ fontSize: 13, padding: '0 4px' }}>No Fechamento entra em "Pagar {origem}", junto com o resto que {origem} pagou por você no mês.</div>}
+    {origem && <div className="mutado" style={{ fontSize: 13, padding: '0 4px' }}>Vai entrar no Fechamento em "Pagar {origem}".</div>}
 
     <Titulo>De quem é?</Titulo>
     <Divisao pessoas={opcoes.pessoas} estado={divisao} mudar={setDivisao} total={Math.abs(numero(valor))} />

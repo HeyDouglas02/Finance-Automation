@@ -150,7 +150,7 @@ Renda base
 - **Entradas:** toda a renda do mês (regra 2) e o acerto de cada pessoa (regra 9). Cada linha tem **Recebi**. O Recebi do acerto é o mesmo da regra 9 (a aba Acertos virou o Fechamento).
 - **Saídas:** tudo que eu pago no começo do mês seguinte: cada fatura de cartão, cada conta fixa e cada débito do mês. Cada linha tem **Paguei**, marcado à mão.
 - As saídas entram pelo **valor cheio**, porque a parte dos outros já está nas entradas como acerto.
-- Débito que veio de outra pessoa (ex.: compras minhas no cartão do Douglas) tem **origem**, escolhida em Lançar → Débito em "Quem pagou?" (Eu ou uma das pessoas). No orçamento cada um fica na sua categoria; no fechamento, os da mesma origem viram uma saída só no mês ("Pagar Douglas"), com um Paguei só.
+- Débito que veio de outra pessoa (ex.: compras minhas no cartão do Douglas) tem **origem**, escolhida em Lançar → Débito, no campo opcional "Pagar para" (uma das pessoas). No orçamento cada um fica na sua categoria; no fechamento, os da mesma origem viram uma saída só no mês ("Pagar Douglas"), com um Paguei só.
 - **Resumo:** falta receber, falta pagar e **sobra = entradas − saídas**.
 - **Deveria ter na conta** = o que já foi marcado como recebido − o que já foi marcado como pago. Serve para conferir com o saldo do banco ao longo do mês.
 - O mês está fechado quando tudo está marcado. Nada passa para o mês seguinte.
