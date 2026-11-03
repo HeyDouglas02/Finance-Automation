@@ -45,7 +45,7 @@ erDiagram
 | `faturas` | Pluggy |
 | `conexoes` | Bancos do Meu Pluggy: o app cadastra o código (regra 21), a sincronização lê daqui e grava o status |
 | `renda` | Manual |
-| `debitos` | Manual (avulso ou parcelado) |
+| `debitos` | Manual (avulso ou parcelado); `origem` = de quem veio, quando outra pessoa pagou por mim |
 | `abastecimentos` | Manual (cartões não conectados) |
 | `pagamentos` | Manual (acertos recebidos) |
 | `baixas` | Manual (Recebi da renda e Paguei das saídas no fechamento, pela `ref` do item) |
