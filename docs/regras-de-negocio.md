@@ -151,3 +151,26 @@ Renda base
 - **Resumo:** falta receber, falta pagar e **sobra = entradas − saídas**.
 - **Deveria ter na conta** = o que já foi marcado como recebido − o que já foi marcado como pago. Serve para conferir com o saldo do banco ao longo do mês.
 - O mês está fechado quando tudo está marcado. Nada passa para o mês seguinte.
+
+## 19. Cadastro de pessoas
+
+- Nada é excluído de verdade: pessoas são **arquivadas** e o histórico continua igual.
+- **Incluir:** nome (obrigatório, sem repetir) e telefone (opcional, para a cobrança pelo WhatsApp).
+- **Editar:** nome e telefone. O nome novo aparece também no histórico: é a mesma pessoa.
+- **Arquivar:** a pessoa some da lista de divisão. Acerto pendente continua no Fechamento até ser pago.
+- As arquivadas ficam numa lista recolhida, com **Restaurar**. Incluir o nome de uma arquivada oferece restaurá-la, em vez de criar outra.
+
+## 20. Cadastro de cartões
+
+- Nada é excluído de verdade: cartões são **arquivados** e o histórico continua igual.
+- **Conectado:** criado pela sincronização quando um banco cadastrado (regra 21) traz um cartão novo, com o nome e os dias de fechamento e vencimento informados pelo banco. Se o banco não mandar os dias, o cartão aparece com o aviso "complete os dias".
+- **Manual** (sem banco, só para gasolina): criado à mão, com nome, dia que fecha, dia que vence e se a fatura vence no mês seguinte ao fechamento ou dois meses depois.
+- **Editar:** nome e dias. Mudar os dias só afeta compras que ainda não estão em fatura fechada.
+- **Arquivar:** some do Lançar. Se for conectado, a sincronização para de puxar compras dele.
+
+## 21. Bancos conectados
+
+- Cada banco conectado no Meu Pluggy tem um código de conexão, cadastrado na aba Mais → **Bancos** (colando o código). O Meu Pluggy não permite que o app descubra as conexões sozinho.
+- A sincronização lê os bancos dessa lista (sai do segredo do servidor e vai para uma tabela).
+- Os cartões de cada banco aparecem sozinhos (regra 20).
+- Desconectar = arquivar: a sincronização para de ler aquele banco e o histórico fica.
