@@ -5,19 +5,19 @@ import { buscarCartoes, buscarConexoes, buscarContasFixas, buscarPessoas } from 
 import { mesAtual } from '../lib/formato';
 import { supabase } from '../lib/supabase';
 import { Icone } from '../components/Icone';
+import { comErro as erroNaConexao } from '../components/Conexoes';
 import { TituloAba } from '../components/BotaoOlho';
 
 /** Aba Mais: menu de cadastros e configurações; cada item abre uma subtela (/mais/:secao). */
 export function Mais() {
   const navegar = useNavigate();
   const [confirmarSaida, setConfirmarSaida] = useState(false);
-  const conexoes = useQuery({ queryKey: ['conexoes'], queryFn: buscarConexoes }).data;
+  const conexoes = useQuery({ queryKey: ['conexoes'], queryFn: buscarConexoes }).data?.filter(c => !c.arquivada);
   const cartoes = useQuery({ queryKey: ['cartoes'], queryFn: buscarCartoes }).data?.filter(c => !c.arquivado);
   const pessoas = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas }).data?.filter(p => !p.arquivada);
   const contas = useQuery({ queryKey: ['contasFixas'], queryFn: buscarContasFixas }).data;
 
-  // o mesmo critério de erro da subtela Bancos
-  const comErro = conexoes?.filter(c => c.status !== 'UPDATED' || (c.execucao !== null && c.execucao !== 'SUCCESS')).length ?? 0;
+  const comErro = conexoes?.filter(erroNaConexao).length ?? 0;
   const ativas = contas?.filter(f => !f.fim || f.fim >= mesAtual()).length;
   const plural = (n: number | undefined, um: string, varios: string) => n === undefined ? '' : `${n} ${n === 1 ? um : varios}`;
 

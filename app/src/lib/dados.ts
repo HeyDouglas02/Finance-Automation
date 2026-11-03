@@ -484,6 +484,7 @@ export async function mudarValorContaFixa(id: number, valor: number, aPartir: st
 }
 
 export type Conexao = {
+  itemId: string; arquivada: boolean;
   contas: string; status: string; execucao: string | null; avisos: string | null;
   ultimaAtualizacao: string | null;   // quando o Meu Pluggy buscou no banco
   sincronizadoEm: string | null;      // quando a nossa sincronização leu do Meu Pluggy
@@ -492,12 +493,27 @@ export type Conexao = {
 /** Status de cada banco conectado (gravado pela sincronização). */
 export async function buscarConexoes(): Promise<Conexao[]> {
   const { data, error } = await supabase.from('conexoes')
-    .select('contas, status, execucao, avisos, ultima_atualizacao, sincronizado_em').order('contas');
+    .select('item_id, arquivada, contas, status, execucao, avisos, ultima_atualizacao, sincronizado_em').order('contas');
   if (error) throw error;
   return (data ?? []).map(c => ({
-    contas: c.contas, status: c.status, execucao: c.execucao, avisos: c.avisos,
+    itemId: c.item_id, arquivada: c.arquivada, contas: c.contas, status: c.status, execucao: c.execucao, avisos: c.avisos,
     ultimaAtualizacao: c.ultima_atualizacao, sincronizadoEm: c.sincronizado_em,
   }));
+}
+
+/** Código de conexão do Meu Pluggy (item id): um UUID. */
+export const codigoConexaoValido = (texto: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(texto.trim());
+
+/** Regra 21: cadastra o banco; a sincronização passa a ler dele (e cria os cartões, regra 20). */
+export async function conectarBanco(codigo: string): Promise<void> {
+  const { error } = await supabase.from('conexoes').insert({ item_id: codigo.trim().toLowerCase(), contas: 'Aguardando a sincronização' });
+  if (error) throw error;
+}
+
+/** Desconectar (ou reconectar): a sincronização para de ler o banco; o histórico fica. */
+export async function arquivarConexao(itemId: string, arquivada: boolean): Promise<void> {
+  const { error } = await supabase.from('conexoes').update({ arquivada }).eq('item_id', itemId);
+  if (error) throw error;
 }
 
 /** Um lançamento manual pra editar, com os dados que o formulário precisa. */

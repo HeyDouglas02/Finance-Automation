@@ -42,7 +42,7 @@ erDiagram
 |---|---|
 | `transacoes` | Pluggy (cartões) |
 | `faturas` | Pluggy |
-| `conexoes` | Pluggy (status de cada banco) |
+| `conexoes` | Bancos do Meu Pluggy: o app cadastra o código (regra 21), a sincronização lê daqui e grava o status |
 | `renda` | Manual |
 | `debitos` | Manual (avulso ou parcelado) |
 | `abastecimentos` | Manual (cartões não conectados) |

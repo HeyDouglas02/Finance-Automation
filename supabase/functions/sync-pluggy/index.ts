@@ -2,8 +2,9 @@
 // Chamada todo dia pelo pg_cron (migration 003) ou manualmente.
 //
 // Secrets necessários (supabase secrets set):
-//   PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET, PLUGGY_ITEM_IDS (separados por vírgula)
+//   PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET
 //   CRON_SECRET (exigido no cabeçalho x-cron-secret de toda chamada)
+// Os bancos lidos são os da tabela conexoes (cadastrados pelo app, regra 21).
 // Publicar com: supabase functions deploy sync-pluggy --use-api --no-verify-jwt
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm do próprio Supabase.
 
@@ -81,7 +82,7 @@ function ler<T>(res: { data: T | null; error: { message: string } | null }, tabe
 
 async function sincronizar(db: SupabaseClient) {
   const key = await pluggyKey();
-  const itemIds = (Deno.env.get('PLUGGY_ITEM_IDS') ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  const itemIds = ler(await db.from('conexoes').select('item_id').eq('arquivada', false), 'conexoes').map(c => c.item_id);
   const desde = new Date(Date.now() - JANELA_DIAS * 864e5).toISOString().slice(0, 10);
   const resumo = { novas: 0, atualizadas: 0, herdadas: 0, substituidas: 0, faturas: 0 };
 
