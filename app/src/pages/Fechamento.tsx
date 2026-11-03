@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dadosMudaram } from '../lib/cache';
 import { useSearchParams } from 'react-router-dom';
 import {
-  buscarAcertos, buscarChavePix, buscarFechamento, buscarItensAcerto, buscarItensOrigem, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
+  buscarAcertos, buscarFechamento, buscarItensAcerto, buscarItensOrigem, buscarPerfil, desfazerPagamento, desmarcarBaixa, marcarBaixa, registrarPagamento,
   type Acerto, type ItemAcerto, type LinhaFechamento,
 } from '../lib/dados';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, somaMes, venceOuVenceu } from '../lib/formato';
@@ -231,7 +231,7 @@ function CartaoPessoa({ acerto: a, competencia, aberta, alternar, mudou }: {
 
 /** Abre o WhatsApp da pessoa com a cobrança escrita (o envio é com você). */
 function BotaoWhatsApp({ acerto: a, itens, competencia }: { acerto: Acerto; itens: ItemAcerto[] | null; competencia: string }) {
-  const pix = useQuery({ queryKey: ['chavePix'], queryFn: buscarChavePix }).data;
+  const pix = useQuery({ queryKey: ['perfil'], queryFn: buscarPerfil }).data?.chavePix;
   if (!a.telefone) {
     return <span className="mutado" style={{ flex: 1, fontSize: 12, alignSelf: 'center', lineHeight: 1.4 }}>Sem telefone cadastrado</span>;
   }

@@ -135,7 +135,7 @@ Segredos entram por variável (`Read-Host`), sem aparecer na tela nem ficar no h
 No app, aba **Mais**:
 1. **Bancos** → colar o código de cada conexão (passo 1). Os cartões aparecem sozinhos na próxima sincronização (até 3h).
 2. **Cartões** → conferir os dias (se aparecer "Confira os dias").
-3. **Pessoas**, **Contas fixas**, **Limites do mês** e **Chave Pix**.
+3. **Perfil** (nome e chave Pix), **Pessoas**, **Contas fixas** e **Limites do mês**.
 4. Instalar no celular (Compartilhar → Adicionar à Tela de Início).
 
 ## 8. Conferir e fechar [monta + pessoa]

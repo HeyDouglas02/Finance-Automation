@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { buscarCartoes, buscarChavePix, buscarConexoes, buscarContasFixas, buscarPessoas } from '../lib/dados';
+import { buscarCartoes, buscarConexoes, buscarContasFixas, buscarPerfil, buscarPessoas } from '../lib/dados';
 import { mesAtual } from '../lib/formato';
 import { supabase } from '../lib/supabase';
 import { Icone } from '../components/Icone';
@@ -15,7 +15,7 @@ export function Mais() {
   const conexoes = useQuery({ queryKey: ['conexoes'], queryFn: buscarConexoes }).data?.filter(c => !c.arquivada);
   const cartoes = useQuery({ queryKey: ['cartoes'], queryFn: buscarCartoes }).data?.filter(c => !c.arquivado);
   const pessoas = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas }).data?.filter(p => !p.arquivada);
-  const pix = useQuery({ queryKey: ['chavePix'], queryFn: buscarChavePix });
+  const perfil = useQuery({ queryKey: ['perfil'], queryFn: buscarPerfil }).data;
   const contas = useQuery({ queryKey: ['contasFixas'], queryFn: buscarContasFixas }).data;
 
   const comErro = conexoes?.filter(erroNaConexao).length ?? 0;
@@ -28,7 +28,7 @@ export function Mais() {
     { secao: 'pessoas', nome: 'Pessoas', resumo: plural(pessoas?.length, 'pessoa', 'pessoas') },
     { secao: 'contas-fixas', nome: 'Contas fixas', resumo: plural(ativas, 'conta', 'contas') },
     { secao: 'limites', nome: 'Limites do mês', resumo: '' },
-    { secao: 'pix', nome: 'Chave Pix', resumo: pix.data === undefined ? '' : pix.data ?? 'Não cadastrada' },
+    { secao: 'perfil', nome: 'Perfil', resumo: perfil === undefined ? '' : perfil.nome ?? 'Sem nome' },
   ];
 
   return (

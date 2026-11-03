@@ -108,6 +108,7 @@ Renda base
 ```
 
 - A renda base serve só para montar os valores. No mês a mês vale a renda real: entrou mais, sobra mais, e os limites não mudam.
+- Sem nenhum limite definido (app novo), o "pode gastar" do mês aberto é **renda − saídas − meta**, com o aviso para definir os limites.
 - Mês sem renda lançada (começo do mês, meses futuros): vale a renda base.
 - Se fixos + reserva + meta + limites passarem da renda base, o app avisa (o orçamento não fecha).
 - **Comprometido** = fixos + parcelas do mês. Aparece no começo do mês junto com a projeção dos meses seguintes, para mostrar quanto da renda já está decidido.
@@ -176,7 +177,8 @@ Renda base
 - Os cartões de cada banco aparecem sozinhos (regra 20).
 - Desconectar = arquivar: a sincronização para de ler aquele banco e o histórico fica.
 
-## 22. Chave Pix
+## 22. Perfil
 
-- Fica na aba Mais → **Chave Pix**, editável pelo app.
-- Usada na mensagem de cobrança pelo WhatsApp. Sem chave, a mensagem vai sem a linha do Pix.
+- Fica na aba Mais → **Perfil**, editável pelo app: **nome** e **chave Pix**.
+- O nome aparece no "Olá" da tela Mês (sem nome: "Olá!").
+- A chave Pix vai na mensagem de cobrança pelo WhatsApp. Sem chave, a mensagem vai sem a linha do Pix.

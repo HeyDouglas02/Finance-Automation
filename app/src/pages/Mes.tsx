@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BotaoOlho } from '../components/BotaoOlho';
 import { diaMesCurto, mesAtual, nomeMes, reais, reaisComSinal, venceOuVenceu } from '../lib/formato';
 import {
-  buscarAReceber, buscarFatura, buscarGrupos, buscarParcelamentos, buscarResumo, buscarSaidas, buscarOrcamentoMes,
+  buscarAReceber, buscarFatura, buscarGrupos, buscarParcelamentos, buscarPerfil, buscarResumo, buscarSaidas, buscarOrcamentoMes,
   type AReceber, type Fatura, type GrupoMes, type FaturaCartao, type LinhaSaida, type Parcela, type ResumoMes,
 } from '../lib/dados';
 import { Icone } from '../components/Icone';
@@ -50,6 +50,7 @@ export function Mes() {
     },
   });
   const erro = error?.message ?? '';
+  const nome = useQuery({ queryKey: ['perfil'], queryFn: buscarPerfil }).data?.nome ?? null;
   const resumo: ResumoMes | null | undefined = data ? data[0] : error ? null : undefined;   // undefined = carregando
   const fatura: Fatura = data?.[1] ?? null;
   const receber: AReceber = data?.[2] ?? { total: 0, pessoas: 0 };
@@ -59,7 +60,7 @@ export function Mes() {
   const orcamento = data?.[6] ?? null;
   const teto = orcamento?.teto ? { parcelas: orcamento.parcelas, teto: orcamento.teto } : null;
   // mês aberto (atual ou futuro) com orçamento: o número grande é quanto ainda pode gastar; mês que passou: o saldo
-  const podeGastar = orcamento && competencia >= mesAtual() ? orcamento : null;
+  const orcamentoAberto = orcamento && competencia >= mesAtual() ? orcamento : null;
 
   // trocou de mês: fecha o que estava aberto
   useEffect(() => {
@@ -70,8 +71,15 @@ export function Mes() {
   }, [competencia]);
 
   const saldo = resumo?.saldo ?? 0;
-  const usaBase = !!podeGastar && !podeGastar.rendaLancada;   // mês aberto sem renda lançada: vale a renda base (regra 13)
-  const renda = usaBase ? podeGastar!.renda : resumo?.renda ?? 0;
+  const usaBase = !!orcamentoAberto && !orcamentoAberto.rendaLancada;   // mês aberto sem renda lançada: vale a renda base (regra 13)
+  const renda = usaBase ? orcamentoAberto!.renda : resumo?.renda ?? 0;
+  // sem nenhum limite definido (app novo), a soma dos limites seria 0: pode gastar = renda − saídas − meta (regra 13)
+  const semLimites = !!orcamentoAberto && !grupos.some(g => g.limite !== null);
+  const podeGastar = !orcamentoAberto ? null : !semLimites ? orcamentoAberto : {
+    ...orcamentoAberto,
+    resta: Math.max(0, renda - (resumo?.saidas ?? 0) - orcamentoAberto.meta),
+    abaixoDaMeta: Math.max(0, (resumo?.saidas ?? 0) + orcamentoAberto.meta - renda),
+  };
   const fracao = resumo && renda > 0 ? resumo.saidas / renda : 0;
   const noVermelho = podeGastar ? podeGastar.abaixoDaMeta > 0 : saldo < 0;
   const estourou = fracao > 1;
@@ -84,9 +92,9 @@ export function Mes() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ width: 46, height: 46, borderRadius: 23, display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 800, fontSize: 17, color: '#F2E4CF', background: 'radial-gradient(circle at 35% 30%, #6B5A48, #2A231C)',
-            boxShadow: '0 0 0 2px rgba(255,255,255,0.14)' }}>D</span>
+            boxShadow: '0 0 0 2px rgba(255,255,255,0.14)' }}>{nome ? nome.trim()[0].toUpperCase() : '·'}</span>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Olá, Douglas</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{nome ? `Olá, ${nome}` : 'Olá!'}</div>
             <div className="mutado" style={{ fontSize: 13 }}>
               {resumo ? (noVermelho ? 'Mês no vermelho, olho nos gastos' : 'Tudo certo por aqui!') : ' '}
             </div>
@@ -116,6 +124,7 @@ export function Mes() {
                   ? `o mês já está R$ ${reais(podeGastar.abaixoDaMeta)} abaixo da meta`
                   : `já guardando R$ ${reais(podeGastar.meta)} da meta`}
               </div>
+              {semLimites && <div className="mutado" style={{ fontSize: 12, marginTop: 4 }}>Sem limites por categoria: defina em Mais → Limites do mês.</div>}
             </> : (
               <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.8, marginTop: 6,
                 color: saldo < 0 ? 'var(--negativo)' : 'var(--texto)',

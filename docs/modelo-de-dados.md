@@ -34,7 +34,7 @@ erDiagram
 | `regras_categoria` | Texto da descrição → categoria (e divisão padrão opcional); com valor, só vale para compras desse valor |
 | `contas_fixas` | Contas recorrentes com vigência |
 | `limites` | Limite em reais de cada grupo, com vigência (regra 14) |
-| `configuracoes` | Uma linha: chave Pix da cobrança (regra 22) |
+| `configuracoes` | Uma linha: nome e chave Pix (Perfil, regra 22) |
 | `orcamento` | Renda base, reserva, meta e teto de parcelas, com vigência (regras 13 a 17) |
 
 **Movimento**

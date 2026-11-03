@@ -628,14 +628,16 @@ export async function definirOrcamento(aPartir: string, rendaBase: number, reser
   if (error) throw error;
 }
 
-/** Chave Pix da cobrança pelo WhatsApp (regra 22). Vazia = mensagem sem a linha do Pix. */
-export async function buscarChavePix(): Promise<string | null> {
-  const { data, error } = await supabase.from('configuracoes').select('chave_pix').eq('id', 1).maybeSingle();
+/** Perfil (regra 22): nome de quem usa o app e chave Pix da cobrança pelo WhatsApp. Vazio = null. */
+export type Perfil = { nome: string | null; chavePix: string | null };
+
+export async function buscarPerfil(): Promise<Perfil> {
+  const { data, error } = await supabase.from('configuracoes').select('nome, chave_pix').eq('id', 1).maybeSingle();
   if (error) throw error;
-  return data?.chave_pix ?? null;
+  return { nome: data?.nome ?? null, chavePix: data?.chave_pix ?? null };
 }
 
-export async function salvarChavePix(chave: string): Promise<void> {
-  const { error } = await supabase.from('configuracoes').update({ chave_pix: chave.trim() || null }).eq('id', 1);
+export async function salvarPerfil(nome: string, chavePix: string): Promise<void> {
+  const { error } = await supabase.from('configuracoes').update({ nome: nome.trim() || null, chave_pix: chavePix.trim() || null }).eq('id', 1);
   if (error) throw error;
 }
