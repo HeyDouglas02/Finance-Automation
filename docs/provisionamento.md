@@ -68,21 +68,30 @@ Segredos entram por variável (`Read-Host`), sem aparecer na tela nem ficar no h
    $cron = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 40 | ForEach-Object { [char]$_ })
    npx supabase secrets set "PLUGGY_CLIENT_ID=$clientId" "PLUGGY_CLIENT_SECRET=$clientSecret" "CRON_SECRET=$cron"
    ```
-2. Publicar a função:
+2. Chave nova da função (`CHAVE_SECRETA`, a `sb_secret_`). As chaves legacy (`anon`/`service_role`) são aposentadas em 2027 e serão desligadas no item 6; a função passa a usar a nova. A CLI mostra a secret mascarada, então ela vem da API de gerenciamento (guardar em variável **antes** de filtrar):
+   ```powershell
+   $chaves = Invoke-RestMethod -Uri "https://api.supabase.com/v1/projects/<ref>/api-keys?reveal=true" -Headers @{ Authorization = "Bearer $env:SUPABASE_ACCESS_TOKEN" }
+   $secreta = ($chaves | Where-Object { $_.type -eq 'secret' }).api_key
+   "tamanho: $($secreta.Length) | mascarada: $($secreta -like '*·*') | começo: $($secreta.Substring(0,10))"   # só segue com mascarada: False
+   npx supabase secrets set "CHAVE_SECRETA=$secreta"
+   ```
+3. Publicar a função:
    ```powershell
    npx supabase functions deploy sync-pluggy --use-api --no-verify-jwt
    ```
-3. Cofre (Vault): o endereço e a senha da porta que o agendamento usa (a saída mostra só os ids dos segredos):
+4. Cofre (Vault): o endereço e a senha da porta que o agendamento usa (a saída mostra só os ids dos segredos):
    ```powershell
    $sql = "select vault.create_secret('https://<ref>.supabase.co', 'project_url'); select vault.create_secret('$cron', 'cron_secret');"
    [IO.File]::WriteAllText("$env:TEMP\vault.sql", $sql)
    npx supabase db query --linked -f "$env:TEMP\vault.sql"
    Remove-Item "$env:TEMP\vault.sql"
    ```
-4. Testar: resposta com zeros = senha da porta e chaves do Pluggy certas (ainda não há banco cadastrado).
+5. Testar: resposta com zeros = senha da porta e chaves do Pluggy certas (ainda não há banco cadastrado).
    ```powershell
    Invoke-RestMethod -Method Post -Uri "https://<ref>.supabase.co/functions/v1/sync-pluggy" -Headers @{ "x-cron-secret" = $cron }
    ```
+
+6. Desligar as chaves legacy (o site usa a `sb_publishable_` e a função a `CHAVE_SECRETA`): API Keys → View legacy API keys → desativar. Depois, JWT Keys → JWT Signing Keys → **Previous (HS256)** → Revoke. Testar de novo (item 5).
 
 ## 5. Login [pessoa + monta]
 
@@ -90,15 +99,14 @@ Segredos entram por variável (`Read-Host`), sem aparecer na tela nem ficar no h
    ```powershell
    Invoke-RestMethod -Method Patch -Uri "https://api.supabase.com/v1/projects/<ref>/config/auth" -Headers @{ Authorization = "Bearer $env:SUPABASE_ACCESS_TOKEN" } -ContentType "application/json" -Body '{"disable_signup": true}'
    ```
-2. Criar o usuário. Precisa da chave mestra (`service_role`, a legacy; a `secret` nova nem sempre é aceita como Bearer), que fica só na variável. **A pessoa digita a própria senha** (mínimo 6):
+2. Criar o usuário com a chave secret (`$secreta`, do passo 4), que fica só na variável. **A pessoa digita a própria senha** (mínimo 6). (Montando a Duda, este item rodou com a `service_role` legacy, antes de desligá-la; com a secret nova ainda não foi testado.)
    ```powershell
-   $chaves = npx supabase projects api-keys --project-ref <ref> -o json | ConvertFrom-Json
-   $servico = ($chaves | Where-Object { $_.name -eq 'service_role' }).api_key
+   $servico = $secreta
    $email = Read-Host "E-mail"
    $s = Read-Host "Senha (a pessoa digita)" -AsSecureString
    $senhaPessoa = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
    $corpo = @{ email = $email; password = $senhaPessoa; email_confirm = $true } | ConvertTo-Json
-   Invoke-RestMethod -Method Post -Uri "https://<ref>.supabase.co/auth/v1/admin/users" -Headers @{ apikey = $servico; Authorization = "Bearer $servico" } -ContentType "application/json" -Body $corpo
+   Invoke-RestMethod -Method Post -Uri "https://<ref>.supabase.co/auth/v1/admin/users" -Headers @{ apikey = $servico } -ContentType "application/json" -Body $corpo
    ```
    `email_confirm` evita o e-mail de confirmação (que apontaria para `localhost`). Anotar o **id** da resposta.
 3. Marcar como dona (sem isso o RLS não mostra nada); o `count` tem que dar 1:
@@ -106,7 +114,7 @@ Segredos entram por variável (`Read-Host`), sem aparecer na tela nem ficar no h
    [IO.File]::WriteAllText("$env:TEMP\dona.sql", "insert into private.donos (user_id) values ('<id>'); select count(*) as donos from private.donos;")
    npx supabase db query --linked -f "$env:TEMP\dona.sql"
    Remove-Item "$env:TEMP\dona.sql"
-   Remove-Variable servico, chaves, senhaPessoa, s
+   Remove-Variable servico, secreta, chaves, senhaPessoa, s
    ```
 
 ## 6. Site na Vercel [monta]
