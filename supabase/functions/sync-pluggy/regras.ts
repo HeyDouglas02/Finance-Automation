@@ -39,6 +39,17 @@ export function competencia(data: string, vencimentoFatura: string | null, diaFe
   return Number(data.slice(8, 10)) <= diaFechamento ? mes : somaMes(mes, 1);
 }
 
+/**
+ * Dias de um cartão novo (regra 20), a partir das datas que o banco manda no cartão.
+ * Sem a data de fechamento, estima 10 dias antes do vencimento; sem nenhuma, fecha 26 e vence 8.
+ */
+export function diasDoCartao(fechamento: string | null, vencimento: string | null) {
+  const dia = (d: string | null) => d ? Number(d.slice(8, 10)) : null;
+  const vence = dia(vencimento) ?? 8;
+  const fecha = dia(fechamento) ?? (vence > 10 ? vence - 10 : vence + 18);
+  return { dia_fechamento: fecha, dia_vencimento: vence, dias_estimados: !fechamento || !vencimento };
+}
+
 /** Pagamento da fatura: não é gasto (senão a compra contaria duas vezes). */
 export function ehPagamentoFatura(descricao: string, categoriaPluggy?: string | null): boolean {
   return /PAG BOLETO|PAGTO DEBITO AUTOMATICO|PAGAMENTO ON LINE|PAGTO\. POR DEB|PAGAMENTO FATURA/.test(norm(descricao)) ||

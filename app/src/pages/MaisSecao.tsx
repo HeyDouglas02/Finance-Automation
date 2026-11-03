@@ -2,11 +2,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icone } from '../components/Icone';
 import { Conexoes } from '../components/Conexoes';
 import { Pessoas } from '../components/Pessoas';
+import { Cartoes } from '../components/Cartoes';
 import { ContasFixas } from '../components/ContasFixas';
 import { LimitesCategorias } from '../components/LimitesCategorias';
 
 const SECOES: Record<string, { titulo: string; conteudo: () => JSX.Element }> = {
   bancos: { titulo: 'Bancos', conteudo: () => <Conexoes /> },
+  cartoes: { titulo: 'Cartões', conteudo: () => <Cartoes /> },
   pessoas: { titulo: 'Pessoas', conteudo: () => <Pessoas /> },
   'contas-fixas': { titulo: 'Contas fixas', conteudo: () => <ContasFixas /> },
   limites: { titulo: 'Limites do mês', conteudo: () => <LimitesCategorias /> },

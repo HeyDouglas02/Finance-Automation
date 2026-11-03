@@ -163,8 +163,8 @@ Renda base
 ## 20. Cadastro de cartões
 
 - Nada é excluído de verdade: cartões são **arquivados** e o histórico continua igual.
-- **Conectado:** criado pela sincronização quando um banco cadastrado (regra 21) traz um cartão novo, com o nome e os dias de fechamento e vencimento informados pelo banco. Se o banco não mandar os dias, o cartão aparece com o aviso "complete os dias".
-- **Manual** (sem banco, só para gasolina): criado à mão, com nome, dia que fecha, dia que vence e se a fatura vence no mês seguinte ao fechamento ou dois meses depois.
+- **Conectado:** criado pela sincronização quando um banco cadastrado (regra 21) traz um cartão novo, com o nome e os dias de fechamento e vencimento informados pelo banco. Se o banco não mandar os dias, eles são estimados e o cartão aparece com o aviso "confira os dias".
+- **Manual** (sem banco, só para gasolina): os que já existem continuam editáveis. Criar cartão manual pelo app fica para quando alguém precisar.
 - **Editar:** nome e dias. Mudar os dias só afeta compras que ainda não estão em fatura fechada.
 - **Arquivar:** some do Lançar. Se for conectado, a sincronização para de puxar compras dele.
 

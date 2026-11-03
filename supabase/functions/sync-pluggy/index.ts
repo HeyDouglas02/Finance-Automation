@@ -9,7 +9,7 @@
 
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import {
-  achaRegra, competencia, dataLocal, ehPagamentoFatura, ehTaxa, grupoParcela,
+  achaRegra, competencia, dataLocal, diasDoCartao, ehPagamentoFatura, ehTaxa, grupoParcela,
   mesmaCompra, Regra, valorEmReais,
 } from './regras.ts';
 
@@ -86,7 +86,8 @@ async function sincronizar(db: SupabaseClient) {
   const resumo = { novas: 0, atualizadas: 0, herdadas: 0, substituidas: 0, faturas: 0 };
 
   // cadastros
-  const cartoes = ler(await db.from('cartoes').select('id, nome, dia_fechamento, pluggy_account_id').eq('conectado', true), 'cartoes');
+  const cartoes = ler(await db.from('cartoes').select('id, nome, dia_fechamento, pluggy_account_id, arquivado').eq('conectado', true), 'cartoes');
+  const nomesUsados = ler(await db.from('cartoes').select('nome'), 'cartoes').map(c => c.nome);
   const categorias = ler(await db.from('categorias').select('id, nome'), 'categorias');
   const regras = ler(await db.from('regras_categoria').select('texto, categoria_id, divisao_padrao, valor').order('prioridade'), 'regras_categoria');
   const pessoas = ler(await db.from('pessoas').select('id, nome'), 'pessoas');
@@ -104,8 +105,20 @@ async function sincronizar(db: SupabaseClient) {
 
     const contas = (await pluggyGet(`/accounts?itemId=${itemId}`, key)).results ?? [];
     for (const acc of contas.filter((a: any) => a.type === 'CREDIT')) {
-      const cartao = cartoes.find(c => c.pluggy_account_id === acc.id) ?? cartoes.find(c => c.nome === acc.name);
-      if (!cartao) { avisos.push(`Cartão sem cadastro: ${acc.name}`); continue; }
+      let cartao = cartoes.find(c => c.pluggy_account_id === acc.id) ?? cartoes.find(c => c.nome === acc.name);
+      if (!cartao) {
+        // regra 20: cartão novo no banco vira cartão no app, com os dias que o banco informa
+        const nome = nomesUsados.includes(acc.name) ? `${acc.name} ${String(acc.number ?? '').slice(-4)}`.trim() : acc.name;
+        const dias = diasDoCartao(dataLocal(acc.creditData?.balanceCloseDate), dataLocal(acc.creditData?.balanceDueDate));
+        const { data, error } = await db.from('cartoes')
+          .insert({ nome, conectado: true, pluggy_account_id: acc.id, meses_ate_vencer: 1, ...dias })
+          .select('id, nome, dia_fechamento, pluggy_account_id, arquivado').single();
+        if (error) throw new Error(`Criar cartão ${nome}: ${error.message}`);
+        cartao = data;
+        cartoes.push(data);
+        nomesUsados.push(nome);
+      }
+      if (cartao.arquivado) continue;   // arquivado: não puxa mais nada dele
       nomesContas.push(cartao.nome);
       if (!cartao.pluggy_account_id) {
         await db.from('cartoes').update({ pluggy_account_id: acc.id }).eq('id', cartao.id);

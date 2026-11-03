@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { buscarConexoes, buscarContasFixas, buscarPessoas } from '../lib/dados';
+import { buscarCartoes, buscarConexoes, buscarContasFixas, buscarPessoas } from '../lib/dados';
 import { mesAtual } from '../lib/formato';
 import { supabase } from '../lib/supabase';
 import { Icone } from '../components/Icone';
@@ -12,6 +12,7 @@ export function Mais() {
   const navegar = useNavigate();
   const [confirmarSaida, setConfirmarSaida] = useState(false);
   const conexoes = useQuery({ queryKey: ['conexoes'], queryFn: buscarConexoes }).data;
+  const cartoes = useQuery({ queryKey: ['cartoes'], queryFn: buscarCartoes }).data?.filter(c => !c.arquivado);
   const pessoas = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas }).data?.filter(p => !p.arquivada);
   const contas = useQuery({ queryKey: ['contasFixas'], queryFn: buscarContasFixas }).data;
 
@@ -22,6 +23,7 @@ export function Mais() {
 
   const itens: { secao: string; nome: string; resumo: string; alerta?: boolean }[] = [
     { secao: 'bancos', nome: 'Bancos', resumo: comErro ? plural(comErro, 'banco com erro', 'bancos com erro') : plural(conexoes?.length, 'conectado', 'conectados'), alerta: comErro > 0 },
+    { secao: 'cartoes', nome: 'Cartões', resumo: cartoes?.some(c => c.diasEstimados) ? 'Confira os dias' : plural(cartoes?.length, 'cartão', 'cartões'), alerta: cartoes?.some(c => c.diasEstimados) },
     { secao: 'pessoas', nome: 'Pessoas', resumo: plural(pessoas?.length, 'pessoa', 'pessoas') },
     { secao: 'contas-fixas', nome: 'Contas fixas', resumo: plural(ativas, 'conta', 'contas') },
     { secao: 'limites', nome: 'Limites do mês', resumo: '' },

@@ -366,7 +366,7 @@ export async function arquivarPessoa(id: number, arquivada: boolean): Promise<vo
   if (error) throw error;
 }
 
-export type CartaoManual = { id: number; nome: string; diaFechamento: number; diaVencimento: number; mesesAteVencer: number };
+export type CartaoManual = { id: number; nome: string; diaFechamento: number; diaVencimento: number; mesesAteVencer: number; arquivado: boolean };
 export type Lancado = { ref: string; tipo: 'renda' | 'debito' | 'gasolina'; id: number; descricao: string; valor: number; minhaParte: number };
 
 /** Fontes de renda já usadas, da mais recente pra mais antiga (viram botões no Lançar). */
@@ -379,9 +379,36 @@ export async function buscarFontesRenda(): Promise<string[]> {
 /** Cartões que não vêm do banco (gasolina é anotada à mão). */
 export async function buscarCartoesManuais(): Promise<CartaoManual[]> {
   const { data, error } = await supabase.from('cartoes')
-    .select('id, nome, dia_fechamento, dia_vencimento, meses_ate_vencer').eq('conectado', false).order('id');
+    .select('id, nome, dia_fechamento, dia_vencimento, meses_ate_vencer, arquivado').eq('conectado', false).order('id');
   if (error) throw error;
-  return (data ?? []).map(c => ({ id: c.id, nome: c.nome, diaFechamento: c.dia_fechamento, diaVencimento: c.dia_vencimento, mesesAteVencer: c.meses_ate_vencer }));
+  return (data ?? []).map(c => ({ id: c.id, nome: c.nome, diaFechamento: c.dia_fechamento, diaVencimento: c.dia_vencimento, mesesAteVencer: c.meses_ate_vencer, arquivado: c.arquivado }));
+}
+
+/** Todos os cartões, conectados e manuais (regra 20). */
+export type Cartao = CartaoManual & { conectado: boolean; diasEstimados: boolean };
+
+export async function buscarCartoes(): Promise<Cartao[]> {
+  const { data, error } = await supabase.from('cartoes')
+    .select('id, nome, conectado, dia_fechamento, dia_vencimento, meses_ate_vencer, arquivado, dias_estimados').order('nome');
+  if (error) throw error;
+  return (data ?? []).map(c => ({
+    id: c.id, nome: c.nome, conectado: c.conectado, diaFechamento: c.dia_fechamento, diaVencimento: c.dia_vencimento,
+    mesesAteVencer: c.meses_ate_vencer, arquivado: c.arquivado, diasEstimados: c.dias_estimados,
+  }));
+}
+
+/** Editar nome e dias; salvar os dias confirma os que tinham sido estimados. */
+export async function editarCartao(id: number, nome: string, diaFechamento: number, diaVencimento: number, mesesAteVencer: number): Promise<void> {
+  const { error } = await supabase.from('cartoes').update({
+    nome: nome.trim(), dia_fechamento: diaFechamento, dia_vencimento: diaVencimento, meses_ate_vencer: mesesAteVencer, dias_estimados: false,
+  }).eq('id', id);
+  if (error) throw error;
+}
+
+/** Arquivar (ou restaurar): some do Lançar e a sincronização para de puxar compras dele. */
+export async function arquivarCartao(id: number, arquivado: boolean): Promise<void> {
+  const { error } = await supabase.from('cartoes').update({ arquivado }).eq('id', id);
+  if (error) throw error;
 }
 
 /** Renda, débitos e gasolina lançados à mão que caem no mês (débito parcelado aparece pela parcela do mês). */

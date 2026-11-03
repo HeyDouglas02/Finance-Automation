@@ -139,7 +139,9 @@ export function FormDebito({ competencia, salvou, editando }: { competencia: str
 }
 
 export function FormGasolina({ salvou, editando }: { salvou: (t: string) => void; editando?: EditandoGasolina }) {
-  const cartoes: CartaoManual[] = useQuery({ queryKey: ['cartoesManuais'], queryFn: buscarCartoesManuais }).data ?? [];
+  // arquivado só aparece se é o cartão do lançamento que está sendo corrigido
+  const cartoes: CartaoManual[] = (useQuery({ queryKey: ['cartoesManuais'], queryFn: buscarCartoesManuais }).data ?? [])
+    .filter(c => !c.arquivado || c.id === editando?.cartaoId);
   const [escolhido, setCartaoId] = useState<number | null>(editando?.cartaoId ?? null);
   const cartaoId = escolhido ?? cartoes[0]?.id ?? null;   // primeiro cartão até você escolher outro
   const [valor, setValor] = useState(editando ? textoValor(editando.valor) : '');
