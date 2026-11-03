@@ -4,6 +4,7 @@
 // Secrets necessários (supabase secrets set):
 //   PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET
 //   CRON_SECRET (exigido no cabeçalho x-cron-secret de toda chamada)
+//   CHAVE_SECRETA (a chave secret sb_secret_ do projeto; sem ela, usa a service_role legacy)
 // Os bancos lidos são os da tabela conexoes (cadastrados pelo app, regra 21).
 // Publicar com: supabase functions deploy sync-pluggy --use-api --no-verify-jwt
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm do próprio Supabase.
@@ -24,7 +25,9 @@ Deno.serve(async (req) => {
     return Response.json({ erro: 'não autorizado' }, { status: 401 });
   }
 
-  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  // CHAVE_SECRETA = chave secret nova (sb_secret_); sem ela, a service_role legacy (aposentada em 2027)
+  const chave = Deno.env.get('CHAVE_SECRETA') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, chave);
   try {
     const resumo = await sincronizar(db);
     return Response.json(resumo);
