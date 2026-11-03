@@ -22,9 +22,11 @@ export function Meses() {
   // buscarMeses vem do mais novo pro mais antigo
   const doMesAtual = meses?.find(m => m.competencia === atual);
   const proximos = (meses ?? []).filter(m => m.competencia > atual && (m.saidas > 0 || m.renda > 0)).reverse();
-  // antes do primeiro mês com renda a importação está incompleta: não mostra
+  // antes do primeiro mês com renda a importação está incompleta: não mostra.
+  // Sem renda nenhuma (app novo), vale o primeiro mês com qualquer lançamento.
   const comRenda = (meses ?? []).filter(m => m.renda > 0);
-  const primeiro = comRenda[comRenda.length - 1]?.competencia ?? atual;
+  const comAlgo = (meses ?? []).filter(m => m.saidas > 0 && m.competencia <= atual);
+  const primeiro = (comRenda.length ? comRenda : comAlgo)[(comRenda.length ? comRenda : comAlgo).length - 1]?.competencia ?? atual;
   const anteriores = (meses ?? []).filter(m => m.competencia < atual && m.competencia >= primeiro);
   const proximosVisiveis = verTodos ? proximos : proximos.slice(0, PROXIMOS_VISIVEIS);
 

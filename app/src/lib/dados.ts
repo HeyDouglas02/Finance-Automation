@@ -26,10 +26,15 @@ export async function buscarResumo(competencia: string): Promise<ResumoMes | nul
   return { competencia: data.competencia, renda: num(data.renda), saidas: num(data.saidas), saldo: num(data.sobra) };
 }
 
-/** Primeiro mês com renda lançada. Antes dele a importação está incompleta (só compras, sem renda). */
+/** Primeiro mês com renda lançada. Antes dele a importação está incompleta (só compras, sem renda).
+ *  Sem renda nenhuma (app novo), o primeiro mês com qualquer lançamento. */
 export async function buscarPrimeiroMes(): Promise<string | null> {
-  const { data, error } = await supabase.from('v_mes')
+  const comRenda = await supabase.from('v_mes')
     .select('competencia').gt('renda', 0).order('competencia').limit(1).maybeSingle();
+  if (comRenda.error) throw comRenda.error;
+  if (comRenda.data) return comRenda.data.competencia;
+  const { data, error } = await supabase.from('v_mes')
+    .select('competencia').gt('saidas', 0).order('competencia').limit(1).maybeSingle();
   if (error) throw error;
   return data?.competencia ?? null;
 }

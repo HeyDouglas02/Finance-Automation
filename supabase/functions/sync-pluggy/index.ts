@@ -149,8 +149,9 @@ async function sincronizar(db: SupabaseClient) {
       resumo.herdadas += r.herdadas; resumo.substituidas += r.substituidas;
     }
 
+    // banco sem cartão: mostra o nome do banco (connector) no lugar do código
     await db.from('conexoes').upsert({
-      item_id: itemId, contas: nomesContas.join(', ') || itemId, status: item.status ?? null,
+      item_id: itemId, contas: nomesContas.join(', ') || item.connector?.name || itemId, status: item.status ?? null,
       execucao: item.executionStatus ?? null, ultima_atualizacao: item.lastUpdatedAt ?? null,
       avisos: avisos.join(' | ') || null, sincronizado_em: new Date().toISOString(),
     });
