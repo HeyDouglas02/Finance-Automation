@@ -31,12 +31,15 @@ export function somaMes(mes: string, n: number): string {
 /**
  * Mês do orçamento de uma compra no cartão:
  *  - com fatura conhecida: mês anterior ao vencimento;
- *  - sem fatura (ainda aberta): até o dia de fechamento, o próprio mês; depois, o seguinte.
+ *  - sem fatura (ainda aberta): a fatura fecha no próprio mês (até o dia de fechamento) ou no seguinte.
+ *    Se ela vence no mesmo mês em que fecha (ex.: fecha 6, vence 16), o vencimento é nesse mês,
+ *    e o orçamento é o mês anterior; senão (ex.: fecha 25, vence 8), vence no mês seguinte.
  */
-export function competencia(data: string, vencimentoFatura: string | null, diaFechamento: number): string {
+export function competencia(data: string, vencimentoFatura: string | null, diaFechamento: number, diaVencimento: number): string {
   if (vencimentoFatura) return somaMes(vencimentoFatura.slice(0, 7) + '-01', -1);
   const mes = data.slice(0, 7) + '-01';
-  return Number(data.slice(8, 10)) <= diaFechamento ? mes : somaMes(mes, 1);
+  const fecha = Number(data.slice(8, 10)) <= diaFechamento ? mes : somaMes(mes, 1);
+  return diaVencimento > diaFechamento ? somaMes(fecha, -1) : fecha;
 }
 
 /**
@@ -52,7 +55,7 @@ export function diasDoCartao(fechamento: string | null, vencimento: string | nul
 
 /** Pagamento da fatura: não é gasto (senão a compra contaria duas vezes). */
 export function ehPagamentoFatura(descricao: string, categoriaPluggy?: string | null): boolean {
-  return /PAG BOLETO|PAGTO DEBITO AUTOMATICO|PAGAMENTO ON LINE|PAGTO\. POR DEB|PAGAMENTO FATURA/.test(norm(descricao)) ||
+  return /PAG BOLETO|PAGTO DEBITO AUTOMATICO|PAGAMENTO ON LINE|PAGTO\. POR DEB|PAGAMENTO FATURA|PAGAMENTO RECEBIDO/.test(norm(descricao)) ||
     categoriaPluggy === 'Credit card payment' || categoriaPluggy === 'Transfer - Internal';
 }
 

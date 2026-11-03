@@ -90,7 +90,7 @@ async function sincronizar(db: SupabaseClient) {
   const resumo = { novas: 0, atualizadas: 0, herdadas: 0, substituidas: 0, faturas: 0 };
 
   // cadastros
-  const cartoes = ler(await db.from('cartoes').select('id, nome, dia_fechamento, pluggy_account_id, arquivado').eq('conectado', true), 'cartoes');
+  const cartoes = ler(await db.from('cartoes').select('id, nome, dia_fechamento, dia_vencimento, pluggy_account_id, arquivado').eq('conectado', true), 'cartoes');
   const nomesUsados = ler(await db.from('cartoes').select('nome'), 'cartoes').map(c => c.nome);
   const categorias = ler(await db.from('categorias').select('id, nome'), 'categorias');
   const regras = ler(await db.from('regras_categoria').select('texto, categoria_id, divisao_padrao, valor').order('prioridade'), 'regras_categoria');
@@ -116,7 +116,7 @@ async function sincronizar(db: SupabaseClient) {
         const dias = diasDoCartao(dataLocal(acc.creditData?.balanceCloseDate), dataLocal(acc.creditData?.balanceDueDate));
         const { data, error } = await db.from('cartoes')
           .insert({ nome, conectado: true, pluggy_account_id: acc.id, meses_ate_vencer: 1, ...dias })
-          .select('id, nome, dia_fechamento, pluggy_account_id, arquivado').single();
+          .select('id, nome, dia_fechamento, dia_vencimento, pluggy_account_id, arquivado').single();
         if (error) throw new Error(`Criar cartão ${nome}: ${error.message}`);
         cartao = data;
         cartoes.push(data);
@@ -160,7 +160,7 @@ async function sincronizar(db: SupabaseClient) {
 }
 
 async function processarTransacoes(
-  db: SupabaseClient, cartao: { id: number; nome: string; dia_fechamento: number },
+  db: SupabaseClient, cartao: { id: number; nome: string; dia_fechamento: number; dia_vencimento: number },
   txs: any[], vencimentoDa: Record<string, string>, desde: string, regras: Regra[],
   catId: (n: string) => number | null, pessoaId: (n: string) => number | null,
 ) {
@@ -179,7 +179,7 @@ async function processarTransacoes(
       parcela_total: m.totalInstallments > 1 ? m.totalInstallments : null,
       compra_original: m.purchaseDate ? dataLocal(m.purchaseDate) : null,
       fatura_id: billId, cartao_final: m.cardNumber ?? null,
-      competencia: competencia(data, billId ? vencimentoDa[billId] ?? null : null, cartao.dia_fechamento),
+      competencia: competencia(data, billId ? vencimentoDa[billId] ?? null : null, cartao.dia_fechamento, cartao.dia_vencimento),
       atualizado_em: new Date().toISOString(),
       _categoriaPluggy: t.category,
     };

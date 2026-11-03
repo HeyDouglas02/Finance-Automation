@@ -6,7 +6,8 @@ Definidas antes da implementação e validadas contra três meses de dados reais
 
 O orçamento de um mês é pago com a renda que cai no mês seguinte, como um salário: trabalha-se em outubro, recebe-se em novembro, e as contas de outubro são pagas com esse dinheiro.
 
-- **Cartão de crédito:** a compra pertence ao mês em que a fatura **fecha** (mês anterior ao vencimento). Enquanto a fatura não fecha, o mês é estimado pelo dia de fechamento do cartão; depois, vale o que o banco informa.
+- **Cartão de crédito:** a compra pertence ao mês **anterior ao vencimento** da fatura. Enquanto a fatura não fecha, o mês é estimado pelos dias do cartão: a fatura fecha no mês da compra (até o dia de fechamento) ou no seguinte; se o cartão vence no mesmo mês em que fecha (ex.: fecha 6, vence 16), o orçamento é o mês anterior ao do fechamento. Depois que a fatura fecha, vale o que o banco informa.
+- Pagamento da fatura ("Pagamento recebido", "Pagamento fatura"...) não é gasto.
 - **Débito, gasolina, renda:** informados com o mês do orçamento.
 
 ## 2. Renda
