@@ -12,6 +12,7 @@ import { Transacoes } from './pages/Transacoes';
 import { Classificar } from './pages/Classificar';
 import { Fechamento } from './pages/Fechamento';
 import { Mais } from './pages/Mais';
+import { MaisSecao } from './pages/MaisSecao';
 import { Lancar } from './pages/Lancar';
 import { EditarLancamento } from './pages/EditarLancamento';
 
@@ -36,6 +37,7 @@ export function App() {
         <Route path="/lancamento/:tipo/:id" element={<EditarLancamento />} />
         <Route path="/fechamento" element={<Fechamento />} />
         <Route path="/mais" element={<Mais />} />
+        <Route path="/mais/:secao" element={<MaisSecao />} />
       </Routes>
       <Ilha />
       <PuxarParaAtualizar />

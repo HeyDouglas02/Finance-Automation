@@ -26,10 +26,7 @@ export function ContasFixas() {
   const totalMes = ativas.filter(f => f.inicio <= atual).reduce((t, f) => t + f.valor, 0);
 
   return <>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '14px 4px 0' }}>
-      <span style={{ fontSize: 15, fontWeight: 600 }}>Contas fixas</span>
-      {ativas.length > 0 && <span className="mutado" style={{ fontSize: 13 }}>{ativas.length} contas · R$ {reais(totalMes)}/mês</span>}
-    </div>
+    {ativas.length > 0 && <div className="mutado" style={{ fontSize: 13, margin: '0 4px' }}>{ativas.length} contas · R$ {reais(totalMes)}/mês</div>}
     {consulta.error && <div role="alert" style={{ color: 'var(--negativo)' }}>Erro: {consulta.error.message}</div>}
 
     <section className="vidro" style={{ padding: '4px 16px' }}>

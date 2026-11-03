@@ -76,10 +76,7 @@ export function LimitesCategorias() {
   );
 
   return <>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '14px 4px 0' }}>
-      <span style={{ fontSize: 15, fontWeight: 600 }}>Limites do mês</span>
-      <span className="mutado" style={{ fontSize: 12 }}>valem a partir de {mes}</span>
-    </div>
+    <div className="mutado" style={{ fontSize: 12, margin: '0 4px' }}>Valem a partir de {mes}</div>
 
     <section className="vidro" style={{ padding: '4px 16px' }}>
       {c.grupos.map((g, i) => linha(`lim-${g.id}`, g.nome, g.limite === null ? 'sem limite' : 'limite do mês',

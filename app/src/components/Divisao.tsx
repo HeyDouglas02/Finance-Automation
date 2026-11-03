@@ -42,6 +42,9 @@ export function Divisao({ pessoas, estado, mudar, total }: {
 }) {
   const { dono, partes } = estado;
   const { minhaParte, passou } = calcularDivisao(estado, total);
+  // arquivada só aparece se já está nesta divisão (corrigir um lançamento antigo)
+  const usada = (id: number) => (dono.tipo === 'pessoa' && dono.id === id) || id in partes;
+  pessoas = pessoas.filter(p => !p.arquivada || usada(p.id));
   const setDono = (d: Dono) => mudar({ ...estado, dono: d });
 
   return <>

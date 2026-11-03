@@ -217,7 +217,7 @@ export async function buscarTransacoes(competencia: string): Promise<Lancamento[
   }));
 }
 
-export type Opcao = { id: number; nome: string };
+export type Opcao = { id: number; nome: string; arquivada?: boolean };
 export type Rateio = { pessoa_id: number; valor: number | null; percentual: number | null };
 export type Compra = {
   id: string; descricao: string; valor: number; data: string; cartao: string;
@@ -228,7 +228,7 @@ export type Compra = {
 export async function buscarOpcoes(): Promise<{ categorias: Opcao[]; pessoas: Opcao[] }> {
   const [c, p] = await Promise.all([
     supabase.from('categorias').select('id, nome').order('nome'),
-    supabase.from('pessoas').select('id, nome').order('id'),
+    supabase.from('pessoas').select('id, nome, arquivada').order('id'),
   ]);
   if (c.error) throw c.error;
   if (p.error) throw p.error;
@@ -328,10 +328,10 @@ export async function desmarcarBaixa(ref: string): Promise<void> {
   if (error) throw error;
 }
 
-export type Pessoa = { id: number; nome: string; telefone: string | null };
+export type Pessoa = { id: number; nome: string; telefone: string | null; arquivada: boolean };
 
 export async function buscarPessoas(): Promise<Pessoa[]> {
-  const { data, error } = await supabase.from('pessoas').select('id, nome, telefone').order('id');
+  const { data, error } = await supabase.from('pessoas').select('id, nome, telefone, arquivada').order('nome');
   if (error) throw error;
   return data ?? [];
 }
@@ -342,12 +342,28 @@ export function normalizarTelefone(digitado: string): string | null {
   return !digitos ? null : digitos.length <= 11 ? '55' + digitos : digitos;
 }
 
-export async function salvarTelefone(id: number, digitado: string): Promise<string | null> {
-  const telefone = normalizarTelefone(digitado);
+/** Nome comparado sem diferença de maiúsculas e espaços ("duda " = "Duda"). */
+export const mesmoNome = (a: string, b: string) => a.trim().toLocaleLowerCase('pt-BR') === b.trim().toLocaleLowerCase('pt-BR');
+
+/** Regra 19: incluir. Nome repetido é tratado na tela (oferece restaurar a arquivada). */
+export async function criarPessoa(nome: string, telefoneDigitado: string): Promise<void> {
+  const telefone = normalizarTelefone(telefoneDigitado);
   if (telefone && !/^\d{12,13}$/.test(telefone)) throw new Error('Número inválido: use DDD + número');
-  const { error } = await supabase.from('pessoas').update({ telefone }).eq('id', id);
+  const { error } = await supabase.from('pessoas').insert({ nome: nome.trim(), telefone });
   if (error) throw error;
-  return telefone;
+}
+
+export async function editarPessoa(id: number, nome: string, telefoneDigitado: string): Promise<void> {
+  const telefone = normalizarTelefone(telefoneDigitado);
+  if (telefone && !/^\d{12,13}$/.test(telefone)) throw new Error('Número inválido: use DDD + número');
+  const { error } = await supabase.from('pessoas').update({ nome: nome.trim(), telefone }).eq('id', id);
+  if (error) throw error;
+}
+
+/** Arquivar (ou restaurar): some da divisão; histórico e acertos continuam. */
+export async function arquivarPessoa(id: number, arquivada: boolean): Promise<void> {
+  const { error } = await supabase.from('pessoas').update({ arquivada }).eq('id', id);
+  if (error) throw error;
 }
 
 export type CartaoManual = { id: number; nome: string; diaFechamento: number; diaVencimento: number; mesesAteVencer: number };

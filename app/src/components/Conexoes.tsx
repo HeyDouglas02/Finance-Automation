@@ -11,7 +11,6 @@ export function Conexoes() {
   const conexoes = consulta.data ?? [];
 
   return <>
-    <div style={{ fontSize: 15, fontWeight: 600, margin: '6px 4px 0' }}>Bancos</div>
     {consulta.error && <div role="alert" style={{ color: 'var(--negativo)' }}>Erro: {consulta.error.message}</div>}
     <section className="vidro" style={{ padding: '4px 16px' }}>
       {conexoes.map((c, i) => <LinhaConexao key={c.contas} conexao={c} primeira={i === 0} />)}
