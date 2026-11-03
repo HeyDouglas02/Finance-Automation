@@ -251,7 +251,7 @@ function BotaoWhatsApp({ acerto: a, itens, competencia }: { acerto: Acerto; iten
     '',
     `Total: R$ ${reais(a.falta)}`,
     ...(pix ? [`Pix: ${pix}`] : []),
-    ...(link ? ['', 'Para importar no seu app:', link] : []),
+    ...(link ? ['', 'Para importar no seu app, toque no link (no iPhone: copie e cole em Mais → Importar):', link] : []),
   ].join('\n');
   const pronto = !!itens && (!exportar || !!link);
   return (

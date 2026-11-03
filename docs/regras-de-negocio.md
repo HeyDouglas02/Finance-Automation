@@ -188,7 +188,7 @@ Renda base
 
 - Cada pessoa pode ter o **endereço do app** dela (Mais → Pessoas, opcional; ex.: `finance-duda.vercel.app`).
 - **Exportar** (app de quem pagou): no Fechamento, a cobrança pelo WhatsApp de quem tem endereço do app leva um **link de importar** com **o mês inteiro daquela pessoa naquele momento**: descrição, valor da parte dela, categoria, data e parcela. O mês não precisa estar fechado.
-- **Importar** (app de quem deve): o link abre uma tela com a lista, o total e de quem veio; confere e confirma.
+- **Importar** (app de quem deve): o link abre uma tela com a lista, o total e de quem veio; confere e confirma. No iPhone o link abre no Safari, então dá também para copiar o link e colar em Mais → **Importar**, dentro do app instalado.
 - **De quem veio:** quem recebe escolhe qual das suas pessoas mandou (o app sugere pelo endereço do app e pelo nome, e lembra para as próximas). O Fechamento junta tudo em **"Pagar <pessoa>"**, junto com os débitos lançados à mão com "Pagar para" essa pessoa.
 - **Importar de novo o mesmo mês substitui aquele mês daquela pessoa**: fica igual ao último link (o que mudou atualiza, o que saiu some, o que é novo entra). Nunca duplica.
 - **Só leitura:** o importado não é editado em quem recebe. Correção se faz na origem e manda de novo.

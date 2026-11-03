@@ -28,6 +28,7 @@ export function Mais() {
     { secao: 'pessoas', nome: 'Pessoas', resumo: plural(pessoas?.length, 'pessoa', 'pessoas') },
     { secao: 'contas-fixas', nome: 'Contas fixas', resumo: plural(ativas, 'conta', 'contas') },
     { secao: 'limites', nome: 'Limites do mês', resumo: '' },
+    { secao: 'importar', nome: 'Importar', resumo: 'colar link' },
     { secao: 'perfil', nome: 'Perfil', resumo: perfil === undefined ? '' : perfil.nome ?? 'Sem nome' },
   ];
 
@@ -37,7 +38,7 @@ export function Mais() {
 
       <section className="vidro" style={{ padding: '4px 16px' }}>
         {itens.map((item, i) => (
-          <button key={item.secao} onClick={() => navegar(`/mais/${item.secao}`)}
+          <button key={item.secao} onClick={() => navegar(item.secao === 'importar' ? '/importar' : `/mais/${item.secao}`)}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '14px 0', textAlign: 'left',
               borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
             <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>{item.nome}</span>

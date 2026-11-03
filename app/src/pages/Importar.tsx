@@ -11,12 +11,19 @@ import { Chip } from '../components/Divisao';
 // categoria comparada sem acento nem maiúscula ("Saúde" = "saude"), regra 23
 const chave = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
-/** Importar (regra 23): aberta pelo link da cobrança; mostra o mês que a outra pessoa mandou e grava ao confirmar. */
+const ler = (hash: string) => {
+  try { return { pacote: lerPacote(hash), erro: '' }; } catch (e) { return { pacote: null, erro: (e as Error).message }; }
+};
+
+/**
+ * Importar (regra 23): aberta pelo link da cobrança, ou por Mais → Importar colando o link
+ * (no iPhone o link abre no Safari, não no app instalado). Mostra o mês que a outra pessoa mandou e grava ao confirmar.
+ */
 export function Importar() {
   const navegar = useNavigate();
-  const [lido] = useState<{ pacote: Pacote | null; erro: string }>(() => {
-    try { return { pacote: lerPacote(window.location.hash), erro: '' }; } catch (e) { return { pacote: null, erro: (e as Error).message }; }
-  });
+  const [lido, setLido] = useState<{ pacote: Pacote | null; erro: string }>(() =>
+    window.location.hash ? ler(window.location.hash) : { pacote: null, erro: '' });
+  const [colado, setColado] = useState('');
   const pessoas: Pessoa[] = useQuery({ queryKey: ['pessoas'], queryFn: buscarPessoas }).data ?? [];
   const categorias = useQuery({ queryKey: ['opcoes'], queryFn: buscarOpcoes }).data?.categorias ?? [];
   const [escolhida, setEscolhida] = useState<number | null>(null);
@@ -54,6 +61,19 @@ export function Importar() {
   return (
     <main className="tela" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <h1 className="titulo">Importar</h1>
+
+      {!p && (
+        <section className="vidro" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label htmlFor="link-importar" className="mutado" style={{ fontSize: 13, lineHeight: 1.5 }}>
+            Copie o link que veio na mensagem do WhatsApp e cole aqui.
+          </label>
+          <textarea id="link-importar" value={colado} onChange={e => setColado(e.target.value)} rows={3}
+            autoCapitalize="off" autoCorrect="off" spellCheck={false} placeholder="https://.../importar#..."
+            className="pilula" style={{ padding: '10px 12px', fontSize: 14, width: '100%', borderRadius: 16, resize: 'none' }} />
+          <button className="botao-mel" disabled={!colado.includes('#')}
+            onClick={() => setLido(ler(colado.slice(colado.indexOf('#')).trim()))}>Ler link</button>
+        </section>
+      )}
 
       {lido.erro && <div role="alert" style={{ color: 'var(--negativo)' }}>{lido.erro}</div>}
 
