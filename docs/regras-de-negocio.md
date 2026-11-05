@@ -76,7 +76,7 @@ O orçamento de um mês é pago com a renda que cai no mês seguinte, como um sa
 - Compra nova do banco que não herdou classificação fica **pendente** (sem categoria ou com a sugerida por regra). Pendente é um status, não uma categoria.
 - Classificar = escolher **de quem é** (minha, inteira de uma pessoa, ou dividida por valor fixo ou %) e **a categoria**. Confirmar marca como revisada.
 - A soma das partes dos outros não pode passar do valor da compra; o resto é do dono.
-- **Parcelas:** a classificação vale para a parcela escolhida **e as seguintes** da mesma compra, mesmo as já revisadas. As anteriores não mudam. As previstas acompanham sozinhas (herdam da última real).
+- **Parcelas:** a classificação vale para a parcela escolhida **e as seguintes** da mesma compra, mesmo as já revisadas. As anteriores não mudam. As previstas acompanham sozinhas (herdam da última real). Tocar numa prevista abre a última parcela que chegou.
 - Qualquer compra pode ser reclassificada depois, com a mesma regra.
 
 ## 12. Categorias
@@ -111,6 +111,7 @@ Renda base
 - A renda base serve só para montar os valores. No mês a mês vale a renda real: entrou mais, sobra mais, e os limites não mudam.
 - Sem nenhum limite definido (app novo), o "pode gastar" do mês aberto é **renda − saídas − meta**, com o aviso para definir os limites.
 - Mês sem renda lançada (começo do mês, meses futuros): vale a renda base.
+- Gastou mais do que os limites: o "pode gastar" fica em R$ 0,00 e o aviso diz quanto da meta ainda vai guardar (ou que fecha zerado). Passou da meta inteira: o título vira "Vai fechar" e o número grande mostra, em vermelho, quanto o mês vai fechar no negativo, sem aviso.
 - Se fixos + reserva + meta + limites passarem da renda base, o app avisa (o orçamento não fecha).
 - **Comprometido** = fixos + parcelas do mês. Aparece no começo do mês junto com a projeção dos meses seguintes, para mostrar quanto da renda já está decidido.
 
@@ -194,3 +195,13 @@ Renda base
 - **Só leitura:** o importado não é editado em quem recebe. Correção se faz na origem e manda de novo.
 - **Parcelas:** as próximas são **previstas** a partir da última parcela importada, até chegar a importação do mês seguinte.
 - **Categoria:** comparada pelo nome, sem diferenciar acento nem maiúscula. Não existindo em quem recebe, entra sem categoria.
+
+## 24. Nome da compra
+
+- A compra do cartão pode ter um **nome** escolhido, além do texto que o banco manda (ex.: "JIM EDUARDA" = "Academia"). Fica na tela **Classificar**, opcional.
+- O app mostra o nome no lugar do texto do banco em todas as telas e no link de exportar (regra 23). O texto do banco continua aparecendo na tela Classificar.
+- O nome fica ligado ao **texto exato do banco**: vale para todas as compras com esse texto, as que já existem e as que chegarem depois.
+- Renomear de novo troca em todas. Apagar o nome volta a mostrar o texto do banco.
+- A sincronização nunca mexe no nome. As parcelas e as regras de categoria continuam usando o texto do banco.
+- O nome não muda a categoria.
+- Compras importadas de outra pessoa não são renomeadas aqui: o nome vem do app de quem mandou.

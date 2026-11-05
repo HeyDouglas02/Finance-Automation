@@ -225,7 +225,7 @@ export async function buscarTransacoes(competencia: string): Promise<Lancamento[
 export type Opcao = { id: number; nome: string; arquivada?: boolean };
 export type Rateio = { pessoa_id: number; valor: number | null; percentual: number | null };
 export type Compra = {
-  id: string; descricao: string; valor: number; data: string; cartao: string;
+  id: string; descricao: string; nome: string | null; valor: number; data: string; cartao: string;
   parcelaNum: number | null; parcelaTotal: number | null; categoriaId: number | null; rateios: Rateio[];
 };
 
@@ -245,12 +245,22 @@ export async function buscarCompra(id: string): Promise<Compra> {
     .select('id, descricao, valor, data, parcela_num, parcela_total, categoria_id, cartoes(nome), rateios(pessoa_id, valor, percentual)')
     .eq('id', id).single();
   if (error) throw error;
+  const n = await supabase.from('nomes_compra').select('nome').eq('texto', data.descricao).maybeSingle();
+  if (n.error) throw n.error;
   const cartao = data.cartoes as unknown as { nome: string } | null;   // relação 1:1, o tipo gerado não sabe
   return {
-    id: data.id, descricao: data.descricao, valor: num(data.valor), data: data.data, cartao: cartao?.nome ?? '',
+    id: data.id, descricao: data.descricao, nome: n.data?.nome ?? null, valor: num(data.valor), data: data.data, cartao: cartao?.nome ?? '',
     parcelaNum: data.parcela_num, parcelaTotal: data.parcela_total, categoriaId: data.categoria_id,
     rateios: (data.rateios ?? []).map(r => ({ pessoa_id: r.pessoa_id, valor: r.valor === null ? null : num(r.valor), percentual: r.percentual === null ? null : num(r.percentual) })),
   };
+}
+
+/** Nome escolhido para um texto do banco (regra 24): vale para todas as compras com esse texto. Vazio apaga. */
+export async function salvarNomeCompra(texto: string, nome: string): Promise<void> {
+  const { error } = nome.trim()
+    ? await supabase.from('nomes_compra').upsert({ texto, nome: nome.trim() })
+    : await supabase.from('nomes_compra').delete().eq('texto', texto);
+  if (error) throw error;
 }
 
 /** Grava categoria + divisão (função classificar no banco, regra 11). Devolve quantas compras mudaram (parcelas seguintes incluídas). */

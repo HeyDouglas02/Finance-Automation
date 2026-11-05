@@ -110,20 +110,26 @@ export function Mes() {
       <section className="vidro" style={{ padding: '18px 18px 16px' }}>
         <button onClick={() => resumo && setVerResumo(!verResumo)} aria-expanded={verResumo} disabled={!resumo}
           style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 16, fontWeight: 600 }}>
-          {podeGastar ? 'Pode gastar' : 'Saldo do mês'}
+          {!podeGastar ? 'Saldo do mês' : podeGastar.abaixoDaMeta > podeGastar.meta ? 'Vai fechar' : 'Pode gastar'}
           {resumo && <span style={{ display: 'flex', transform: verResumo ? 'rotate(180deg)' : 'none' }}><Icone nome="baixo" tamanho={16} cor="#C9C2B7" /></span>}
         </button>
         {resumo === undefined ? <div className="mutado" style={{ marginTop: 8 }}>Carregando…</div>
           : resumo === null ? <div className="mutado" style={{ marginTop: 8 }}>Sem dados para este mês.</div>
           : <>
             {podeGastar ? <>
+              {/* passou da meta: o número grande vira quanto o mês fecha no negativo, sem aviso (regra 13) */}
               <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.8, marginTop: 6,
-                color: podeGastar.abaixoDaMeta > 0 ? 'var(--negativo)' : 'var(--texto)' }}>R$ {reais(podeGastar.resta)}</div>
-              <div style={{ fontSize: 13, marginTop: 2, color: podeGastar.abaixoDaMeta > 0 ? 'var(--negativo)' : 'var(--texto-2)' }}>
-                {podeGastar.abaixoDaMeta > 0
-                  ? `o mês já está R$ ${reais(podeGastar.abaixoDaMeta)} abaixo da meta`
-                  : `já guardando R$ ${reais(podeGastar.meta)} da meta`}
+                color: podeGastar.abaixoDaMeta > 0 ? 'var(--negativo)' : 'var(--texto)' }}>
+                {podeGastar.abaixoDaMeta > podeGastar.meta ? reaisComSinal(podeGastar.meta - podeGastar.abaixoDaMeta) : `R$ ${reais(podeGastar.resta)}`}
               </div>
+              {podeGastar.abaixoDaMeta <= podeGastar.meta && (
+                <div style={{ fontSize: 13, marginTop: 2, color: podeGastar.abaixoDaMeta > 0 ? 'var(--negativo)' : 'var(--texto-2)' }}>
+                  {podeGastar.abaixoDaMeta <= 0 ? `já guardando R$ ${reais(podeGastar.meta)} da meta`
+                    : podeGastar.abaixoDaMeta < podeGastar.meta
+                      ? `vai guardar só R$ ${reais(podeGastar.meta - podeGastar.abaixoDaMeta)} dos R$ ${reais(podeGastar.meta)} da meta`
+                      : 'o mês vai fechar zerado, sem a meta'}
+                </div>
+              )}
               {semLimites && <div className="mutado" style={{ fontSize: 12, marginTop: 4 }}>Sem limites por categoria: defina em Mais → Limites do mês.</div>}
             </> : (
               <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.8, marginTop: 6,

@@ -134,10 +134,10 @@ function divergenciaLegivel(texto: string): string {
   return m ? `${m[1]} R$ ${reais(Number(m[2].replace(/,/g, '')))}` : texto;
 }
 
-/** Pra onde o toque leva: compra do cartão → classificar; renda, débito, gasolina → corrigir; previsão → nada. */
+/** Pra onde o toque leva: compra do cartão → classificar (parcela prevista: a última que chegou); renda, débito, gasolina → corrigir; outras previsões → nada. */
 function destino(ref: string): string | null {
   const [prefixo, id] = ref.split(':');   // "tx:abc", "renda:12", "deb:7:0", "gas:3", "prev:…", "fixa:…"
-  if (prefixo === 'tx') return `/classificar/${id}`;
+  if (prefixo === 'tx' || prefixo === 'prev') return `/classificar/${id}`;
   if (prefixo === 'renda') return `/lancamento/renda/${id}`;
   if (prefixo === 'deb') return `/lancamento/debito/${id}`;
   if (prefixo === 'gas') return `/lancamento/gasolina/${id}`;

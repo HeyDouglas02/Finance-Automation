@@ -49,6 +49,7 @@ erDiagram
 | `abastecimentos` | Manual (cartões não conectados) |
 | `pagamentos` | Manual (acertos recebidos) |
 | `importados` | Compras que outra pessoa pagou por mim, importadas do app dela por link (regra 23); importar um mês substitui aquele mês |
+| `nomes_compra` | Nome escolhido para um texto exato do banco (regra 24); vale para todas as compras com esse texto |
 | `baixas` | Manual (Recebi da renda e Paguei das saídas no fechamento, pela `ref` do item) |
 | `rateios` | Parte de cada pessoa em uma transação, débito ou abastecimento |
 
@@ -80,6 +81,7 @@ erDiagram
 | `v_mes` | Renda, saídas por grupo e sobra de cada mês |
 | `v_acertos` | Devido e pago por pessoa e mês |
 | `v_itens` (importados) | As importadas entram como compra ou parcela, com as seguintes previstas; origem = a pessoa |
+| `v_itens` (nome da compra) | Compras e parcelas previstas mostram o nome escolhido no lugar do texto do banco |
 | `v_fechamento` | Entradas e saídas do mês para o fechamento (regra 18), com o que já foi marcado |
 | `v_categorias_mes` | Sua parte gasta em cada categoria, por mês, com o grupo |
 | `v_orcamento_base` | Cada mês com orçamento × cada grupo: limite e gasto (base das duas seguintes) |

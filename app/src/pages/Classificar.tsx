@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dadosMudaram } from '../lib/cache';
 import { useNavigate, useParams } from 'react-router-dom';
-import { buscarCompra, buscarOpcoes, classificar } from '../lib/dados';
+import { buscarCompra, buscarOpcoes, classificar, salvarNomeCompra } from '../lib/dados';
 import { diaMesCurto, reais } from '../lib/formato';
 import { Icone } from '../components/Icone';
 import { Chip, DIVISAO_MINHA, Titulo, Divisao, calcularDivisao, estadoDeRateios, type EstadoDivisao } from '../components/Divisao';
@@ -18,6 +18,7 @@ export function Classificar() {
   const pessoas = opcoes?.pessoas ?? [];
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
   const [divisao, setDivisao] = useState<EstadoDivisao>(DIVISAO_MINHA);
+  const [nome, setNome] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -27,6 +28,7 @@ export function Classificar() {
     // categoria atual vale como sugestão (pendente vem sem categoria: nada marcado)
     setCategoriaId(opcoes.categorias.some(x => x.id === compra.categoriaId) ? compra.categoriaId : null);
     setDivisao(estadoDeRateios(compra.rateios, Math.abs(compra.valor)));
+    setNome(compra.nome ?? '');
   }, [compra, opcoes]);
 
   if (!compra) {
@@ -43,6 +45,7 @@ export function Classificar() {
     setSalvando(true);
     setErro('');
     try {
+      if (nome.trim() !== (compra.nome ?? '')) await salvarNomeCompra(compra.descricao, nome);
       await classificar(compra.id, categoriaId, rateios);
       dadosMudaram();   // saldo, categorias, acertos… dependem da classificação
       navegar(-1);
@@ -73,6 +76,14 @@ export function Classificar() {
           {[compra.cartao, diaMesCurto(compra.data), parcela ? `${compra.parcelaNum} de ${compra.parcelaTotal}` : null].filter(Boolean).join(' · ')}
         </div>
       </section>
+
+      {/* regra 24: o nome vale para todas as compras com esse texto do banco */}
+      <Titulo>Nome</Titulo>
+      <input aria-label="Nome da compra" placeholder={compra.descricao} value={nome} onChange={e => setNome(e.target.value)}
+        className="pilula" style={{ height: 44, padding: '0 14px', fontSize: 15, width: '100%' }} />
+      <p className="mutado" style={{ fontSize: 13, margin: '-4px 4px 0', lineHeight: 1.5 }}>
+        Opcional. Troca em todas as compras "{compra.descricao}", as de antes e as que vierem.
+      </p>
 
       <Titulo>De quem é?</Titulo>
       <Divisao pessoas={pessoas} estado={divisao} mudar={setDivisao} total={total} />
